@@ -1,8 +1,20 @@
-import { HardhatUserConfig } from "hardhat/config";
-import "@nomicfoundation/hardhat-toolbox";
+import { HardhatUserConfig } from 'hardhat/types';
+import '@nomicfoundation/hardhat-toolbox'
+import 'dotenv/config'
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.19",
-};
+  solidity: "0.8.20",
+  defaultNetwork: "victestnet",
+  networks: {
+    victestnet: {
+      url: "https://rpc.testnet.tomochain.com",
+      accounts: [process.env.PRIVATE_KEY || ""]
+    },
+    vicmainnet: {
+      url: "https://rpc.tomochain.com",
+      accounts: [process.env.PRIVATE_KEY || ""]
+    }
+  }
+}
 
 export default config;
