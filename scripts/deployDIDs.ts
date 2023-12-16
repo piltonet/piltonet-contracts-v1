@@ -31,16 +31,16 @@ async function main() {
   fs.writeFileSync(`${deploymentsDir}/DIDAccount.json`, JSON.stringify(DIDAccountContract))
   console.log("DIDAccount deployed to:", DIDAccountContract.address);
 
-  // // DIDRegistry
-  // const DIDRegistry = await ethers.deployContract("DIDRegistry", {
-  //   gasLimit: 4000000
-  // });
-  // const DIDRegistryContract = {
-  //   deployer: deployer.address,
-  //   address: await DIDRegistry.getAddress()
-  // }
-  // fs.writeFileSync(`${deploymentsDir}/DIDRegistry.json`, JSON.stringify(DIDRegistryContract))
-  // console.log("DIDRegistry deployed to:", DIDRegistryContract.address);
+  // DIDRegistry
+  const DIDRegistry = await ethers.deployContract("DIDRegistry", {
+    gasLimit: 4000000
+  });
+  const DIDRegistryContract = {
+    deployer: deployer.address,
+    address: await DIDRegistry.getAddress()
+  }
+  fs.writeFileSync(`${deploymentsDir}/DIDRegistry.json`, JSON.stringify(DIDRegistryContract))
+  console.log("DIDRegistry deployed to:", DIDRegistryContract.address);
 
 }
 
