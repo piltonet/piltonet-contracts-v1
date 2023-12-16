@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract DIDCard is ERC721, ERC721URIStorage, Ownable {
     uint256 private _tokenId;
 
-    constructor(address initialOwner) Ownable(initialOwner) ERC721("Piltonet Decentralized ID-card", "DIDC") {}
+    constructor() Ownable(msg.sender) ERC721("Piltonet Decentralized ID-card", "DIDC") {}
 
     function totalSupply() public view returns (uint256) {
         return _tokenId;
