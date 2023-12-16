@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
-import "../lib/Bytecode.sol";
+import "./lib/Bytecode.sol";
 import "./interfaces/IERC6551Account.sol";
 
 /// @title Piltonet Decentralized Identity Account
