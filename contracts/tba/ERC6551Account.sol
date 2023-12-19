@@ -44,8 +44,6 @@ contract ERC6551Account is IERC165, IERC1271, IERC6551Account, IERC6551Executabl
         }
     }
 
-
-
     function isValidSigner(address signer, bytes calldata) external view returns (bytes4) {
         if (_isValidSigner(signer)) {
             return IERC6551Account.isValidSigner.selector;

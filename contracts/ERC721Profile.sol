@@ -4,7 +4,8 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./tba/ERC6551Registry.sol";
+import "@openzeppelin/contracts/utils/Create2.sol";
+import "./tba/lib/ERC6551Bytecode.sol";
 import "./utils/Utils.sol";
 
 contract ERC721Profile is ERC721, ERC721URIStorage, Ownable {
@@ -12,7 +13,6 @@ contract ERC721Profile is ERC721, ERC721URIStorage, Ownable {
     string private _baseTokenURI;
 
     address public AccountImplementation;
-    ERC6551Registry public Registry;
     mapping(address => address) private _tba;
     uint256 public totalTBAs;
 
@@ -29,13 +29,11 @@ contract ERC721Profile is ERC721, ERC721URIStorage, Ownable {
     
     constructor(
         string memory baseURI,
-        address _ERC6551Account,
-        address _ERC6551Registry
+        address _ERC6551Account
     ) ERC721("Piltonet Profile", "PIP") Ownable(msg.sender) {
         _baseTokenURI = baseURI;
 
         AccountImplementation = _ERC6551Account;
-        Registry = ERC6551Registry(_ERC6551Registry);
     }
 
     function createProfile(address mainAccount) public onlyOwner returns (address) {
@@ -46,7 +44,7 @@ contract ERC721Profile is ERC721, ERC721URIStorage, Ownable {
         _tokenId++;
 
         // compute TBA address
-        address _tokenBoundAccount = Registry.account(
+        address _tbaAddress = _computeTBA(
             AccountImplementation,
             block.chainid,
             address(this),
@@ -56,15 +54,15 @@ contract ERC721Profile is ERC721, ERC721URIStorage, Ownable {
 
         // mint profilr NFT
         _safeMint(mainAccount, _tokenId);
-        _setTokenURI(_tokenId, Utils.toString(_tokenBoundAccount));
+        _setTokenURI(_tokenId, Utils.toString(_tbaAddress));
 
         // save tba in contract and return that
-        _tba[mainAccount] = _tokenBoundAccount;
+        _tba[mainAccount] = _tbaAddress;
         totalTBAs++;
         
-        emit ProfileCreated(_tokenId, _tokenBoundAccount);
+        emit ProfileCreated(_tokenId, _tbaAddress);
 
-        return _tokenBoundAccount;
+        return _tbaAddress;
     }
 
     function removeProfile(uint256 tokenId) public virtual {
@@ -89,6 +87,26 @@ contract ERC721Profile is ERC721, ERC721URIStorage, Ownable {
 
     function setBaseURI(string memory baseURI) public onlyOwner {
         _baseTokenURI = baseURI;
+    }
+
+    function _computeTBA(
+        address implementation,
+        uint256 chainId,
+        address tokenContract,
+        uint256 tokenId,
+        uint256 salt
+    ) internal view returns (address) {
+        bytes32 bytecodeHash = keccak256(
+            ERC6551Bytecode.getCreationCode(
+                implementation,
+                chainId,
+                tokenContract,
+                tokenId,
+                salt
+            )
+        );
+
+        return Create2.computeAddress(bytes32(salt), bytecodeHash);
     }
 
     // The following functions are overrides required by Solidity.
