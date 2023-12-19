@@ -14,13 +14,14 @@ contract Profile is ERC721, ERC721URIStorage, Ownable {
     address public AccountImplementation;
     ERC6551Registry public Registry;
     mapping(address => address) private _tba;
+    uint256 public totalTBAs;
 
     /*///////////////////////////////////////////////////////////////
                             Events
     //////////////////////////////////////////////////////////////*/
     
-    /// @notice Emitted when a profile has been created
     event ProfileCreated(uint256 indexed tokenId, address indexed account);
+    event RemoveProfile(uint256 indexed tokenId);
 
     /*///////////////////////////////////////////////////////////////
                             Constructor
@@ -59,12 +60,29 @@ contract Profile is ERC721, ERC721URIStorage, Ownable {
 
         // save tba in contract and return that
         _tba[mainAccount] = _tokenBoundAccount;
+        totalTBAs++;
         
         emit ProfileCreated(_tokenId, _tokenBoundAccount);
 
         return _tokenBoundAccount;
     }
 
+    function removeProfile(uint256 tokenId) public virtual {
+        require(ownerOf(tokenId) == msg.sender, "Error, Only account owner can remove!");
+
+        _update(address(0), tokenId, msg.sender);
+        
+        // reset tba address
+        _tba[msg.sender] = address(0);
+        totalTBAs--;
+        
+        emit RemoveProfile(_tokenId);
+    }
+
+    function getTBA(address mainAccount) external view returns (address) {
+        return _tba[mainAccount];
+    }
+    
     function totalSupply() external view returns (uint256) {
         return _tokenId;
     }
