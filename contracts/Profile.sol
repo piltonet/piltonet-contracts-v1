@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./tokenbound-account/ERC6551Registry.sol";
+import "./tba/ERC6551Registry.sol";
 import "./utils/Utils.sol";
 
 contract Profile is ERC721, ERC721URIStorage, Ownable {
