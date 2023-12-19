@@ -5,26 +5,24 @@ async function main() {
   const NETWORK = "victestnet";
   const deploymentsDir = `./deployments/${NETWORK}`;
 
-  const deployedERC6551Account = require(`.${deploymentsDir}/ERC6551Account.json`);
-  const deployedERC6551Registry = require(`.${deploymentsDir}/ERC6551Registry.json`);
+  const deployedERC721Profile = require(`.${deploymentsDir}/ERC721Profile.json`);
 
   const [deployer] = await ethers.getSigners();
   console.log("Deploying contracts with the account:", deployer.address);
 
-  // ERC721Profile
-  const ERC721Profile = await ethers.deployContract("ERC721Profile", [
+  // ERC1155Contacts
+  const ERC1155Contacts = await ethers.deployContract("ERC1155Contacts", [
     "https://piltonet.com/profile/",
-    deployedERC6551Account.address,
-    deployedERC6551Registry.address
+    deployedERC721Profile.address
   ], {
     gasLimit: 4000000
   });
-  const ProfileContract = {
+  const ContactsContract = {
     deployer: deployer.address,
-    address: await ERC721Profile.getAddress()
+    address: await ERC1155Contacts.getAddress()
   }
-  fs.writeFileSync(`${deploymentsDir}/ERC721Profile.json`, JSON.stringify(ProfileContract))
-  console.log("ERC721Profile deployed to:", ProfileContract.address);
+  fs.writeFileSync(`${deploymentsDir}/ERC1155Contacts.json`, JSON.stringify(ContactsContract))
+  console.log("ERC1155Contacts deployed to:", ContactsContract.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

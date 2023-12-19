@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./tba/ERC6551Registry.sol";
 import "./utils/Utils.sol";
 
-contract Profile is ERC721, ERC721URIStorage, Ownable {
+contract ERC721Profile is ERC721, ERC721URIStorage, Ownable {
     uint256 private _tokenId;
     string private _baseTokenURI;
 
