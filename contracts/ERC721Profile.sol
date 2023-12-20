@@ -13,8 +13,8 @@ contract ERC721Profile is ERC721, ERC721URIStorage, Ownable {
     string private _baseTokenURI;
 
     address public AccountImplementation;
-    mapping(address => address) private _tba;
-    uint256 public totalTBAs;
+    mapping(address => address) private _tbaOwners;
+    uint256 private _totalTBAs;
 
     /*///////////////////////////////////////////////////////////////
                             Events
@@ -36,9 +36,10 @@ contract ERC721Profile is ERC721, ERC721URIStorage, Ownable {
         AccountImplementation = _ERC6551Account;
     }
 
-    function createProfile(address mainAccount) public onlyOwner returns (address) {
+    // mint profile NFT
+    function createProfile(address mainAccount) public onlyOwner returns (uint256) {
         // each account can create a unique profile
-        require(_tba[mainAccount] == address(0), "Error: Account has already been created!");
+        require(balanceOf(mainAccount) == 0, "Error: Profile has already been created!");
 
         // tokenId values start at 1
         _tokenId++;
@@ -57,28 +58,58 @@ contract ERC721Profile is ERC721, ERC721URIStorage, Ownable {
         _setTokenURI(_tokenId, Utils.toString(_tbaAddress));
 
         // save tba in contract and return that
-        _tba[mainAccount] = _tbaAddress;
-        totalTBAs++;
+        _tbaOwners[_tbaAddress] = mainAccount;
+        _totalTBAs++;
         
         emit ProfileCreated(_tokenId, _tbaAddress);
 
-        return _tbaAddress;
+        return _tokenId;
     }
 
+    // burn profile NFT
     function removeProfile(uint256 tokenId) public virtual {
         require(ownerOf(tokenId) == msg.sender, "Error, Only account owner can remove!");
 
+        // reset token ownership
         _update(address(0), tokenId, msg.sender);
         
+        // compute TBA address
+        address _tbaAddress = _computeTBA(
+            AccountImplementation,
+            block.chainid,
+            address(this),
+            tokenId,
+            0
+        );
+
         // reset tba address
-        _tba[msg.sender] = address(0);
-        totalTBAs--;
+        if (_tbaOwners[_tbaAddress] != address(0)) {
+            _tbaOwners[_tbaAddress] = address(0);
+            _totalTBAs--;
+        }
         
-        emit RemoveProfile(_tokenId);
+        emit RemoveProfile(tokenId);
     }
 
-    function getTBA(address mainAccount) external view returns (address) {
-        return _tba[mainAccount];
+    // return the token bound accounnt by token id, if id not exist return address(0)
+    function tbaOf(uint256 tokenId) external view returns (address) {
+        if(ownerOf(tokenId) == address(0)) return address(0);
+        return _computeTBA(
+            AccountImplementation,
+            block.chainid,
+            address(this),
+            tokenId,
+            0
+        );
+    }
+    
+    // return the owner on token bound account
+    function tbaOwner(address tokenBoundAccound) external view returns (address) {
+        return _tbaOwners[tokenBoundAccound];
+    }
+    
+    function totalTBAs() external view returns (uint256) {
+        return _totalTBAs;
     }
     
     function totalSupply() external view returns (uint256) {

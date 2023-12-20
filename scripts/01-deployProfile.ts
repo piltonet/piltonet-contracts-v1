@@ -6,7 +6,7 @@ async function main() {
   const deploymentsDir = `./deployments/${NETWORK}`;
 
   const deployedERC6551Account = require(`.${deploymentsDir}/ERC6551Account.json`);
-  const deployedERC6551Registry = require(`.${deploymentsDir}/ERC6551Registry.json`);
+  // const deployedERC6551Registry = require(`.${deploymentsDir}/ERC6551Registry.json`);
 
   const [deployer] = await ethers.getSigners();
   console.log("Deploying contracts with the account:", deployer.address);
@@ -15,7 +15,7 @@ async function main() {
   const ERC721Profile = await ethers.deployContract("ERC721Profile", [
     "https://piltonet.com/profile/",
     deployedERC6551Account.address,
-    deployedERC6551Registry.address
+    // deployedERC6551Registry.address
   ], {
     gasLimit: 4000000
   });
