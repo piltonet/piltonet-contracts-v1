@@ -9,27 +9,53 @@ import "./ERC721Profile.sol";
 /// @custom:security-contact security@piltonet.com
 contract ERC1155Contacts is ERC1155, Ownable, ERC1155Supply {
     
-    address public ProfileImplementation;
+    // ERC721Profile contract
+    ERC721Profile internal _ERC721Profile;
+
+    // save all contacts by tokenId
+    mapping(uint256 => address[]) private _allContacts;
+    
+    /*///////////////////////////////////////////////////////////////
+                            Events
+    //////////////////////////////////////////////////////////////*/
+    
+    event ContactAdded(uint256 indexed tokenId, address indexed account, address indexed contact);
+
+    /*///////////////////////////////////////////////////////////////
+                            Constructor
+    //////////////////////////////////////////////////////////////*/
     
     constructor(
       string memory baseURI,
-      address _ERC721Profile
+      address profileAddr
     )
         ERC1155(baseURI)
         Ownable(msg.sender)
     {
-        ProfileImplementation = _ERC721Profile;
+        _ERC721Profile = ERC721Profile(profileAddr);
     }
 
-    function setURI(string memory newuri) public onlyOwner {
-        _setURI(newuri);
-    }
+    /*///////////////////////////////////////////////////////////////
+                            Functions
+    //////////////////////////////////////////////////////////////*/
 
     function addContact(address contactTBA, uint256 id) public {
         require(isProfileOwner(msg.sender, id) || msg.sender == owner(), "Error: Unauthorized request!");
         require(balanceOf(contactTBA, id) == 0, "Error: Contact has already been added!");
         
         _mint(contactTBA, id, 1, "");
+
+        _allContacts[id].push(contactTBA);
+
+        emit ContactAdded(id, msg.sender, contactTBA);
+    }
+
+    function contactsOf(uint256 id) public view returns (address[] memory) {
+        return _allContacts[id];
+    }
+
+    function setURI(string memory newuri) public onlyOwner {
+        _setURI(newuri);
     }
     
     // The following functions are overrides required by Solidity.
@@ -42,7 +68,7 @@ contract ERC1155Contacts is ERC1155, Ownable, ERC1155Supply {
     }
 
     function uri(uint256 tokenId) public view override(ERC1155) returns (string memory) {
-        return super.uri(tokenId);
+        return getProfileURI(tokenId);
     }
 
     function safeTransferFrom(address from, address to, uint256 id, uint256 value, bytes memory data) public virtual override(ERC1155) {
@@ -67,13 +93,16 @@ contract ERC1155Contacts is ERC1155, Ownable, ERC1155Supply {
 
     /// @notice Check the owner of same tokenId in ERC721Profile contract
     function isProfileOwner(address account, uint256 id) public view returns (bool) {
-        ERC721Profile Profile = ERC721Profile(ProfileImplementation);
-        return Profile.ownerOf(id) == account;
+        return _ERC721Profile.ownerOf(id) == account;
     }
     
     /// @notice Check the owner of same tokenId in ERC721Profile contract
     function isValidContact(address contactTBA) public view returns (bool) {
-        ERC721Profile Profile = ERC721Profile(ProfileImplementation);
-        return Profile.tbaOwner(contactTBA) != address(0);
+        return _ERC721Profile.tbaOwner(contactTBA) != address(0);
+    }
+    
+    /// @notice get ERC721Profile tokenURI
+    function getProfileURI(uint256 tokenId) public view returns (string memory) {
+        return _ERC721Profile.tokenURI(tokenId);
     }
 }
