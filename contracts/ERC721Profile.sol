@@ -7,6 +7,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./tba/ERC6551Registry.sol";
 import "./utils/Utils.sol";
 
+/// @title Piltonet Profile - ERC725 contract
+/// @author @FAR0KH
+/// @notice This contract is used to store accounts registered in Piltonet as NFTs and release TokenBound-Accounts
 contract ERC721Profile is ERC721, ERC721URIStorage, Ownable {
     uint256 private _tokenId;
     string private _baseTokenURI;

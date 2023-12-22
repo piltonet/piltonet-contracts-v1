@@ -6,6 +6,9 @@ import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./ERC721Profile.sol";
 
+/// @title Piltonet Contacts - ERC1155 contract
+/// @author @FAR0KH
+/// @notice This contract is used to store trust relationships between accounts registered in Profile contract
 /// @custom:security-contact security@piltonet.com
 contract ERC1155Contacts is ERC1155, Ownable, ERC1155Supply {
     
