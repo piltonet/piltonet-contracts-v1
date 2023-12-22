@@ -4,14 +4,14 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./tba/ERC6551Account.sol";
+import "./tba/interfaces/IERC6551Account.sol";
 import "./utils/Utils.sol";
 
 /// @title Piltonet Contacts - ERC1155 contract
 /// @author @FAR0KH
 /// @notice This contract is used to store trust relationships between accounts registered in Profile contract
 /// @custom:security-contact security@piltonet.com
-contract ERC1155Contacts is ERC1155, Ownable, ERC1155Supply {
+contract ERC1155Contacts is ERC1155, ERC1155Supply, Ownable {
     
     /// @dev save tba as main owner of its tokenId 
     mapping(uint256 => address) private _idOwner;
@@ -31,7 +31,7 @@ contract ERC1155Contacts is ERC1155, Ownable, ERC1155Supply {
     
     modifier onlyTBAOwner(address account) {
         require(
-            ERC6551Account(payable(account)).owner() == msg.sender,
+            IERC6551Account(payable(account)).owner() == msg.sender,
             "The sender is not the owner of tokenbound-account."
         );
         _;
@@ -39,7 +39,7 @@ contract ERC1155Contacts is ERC1155, Ownable, ERC1155Supply {
     
     modifier onlyRegisteredTBA(address account) {
         require(
-            ERC6551Account(payable(account)).owner() != address(0),
+            IERC6551Account(payable(account)).owner() != address(0),
             "The account is not a valid tokenbound-account."
         );
         _;
@@ -93,8 +93,13 @@ contract ERC1155Contacts is ERC1155, Ownable, ERC1155Supply {
     }
 
     /// @dev override ERC1155 safeTransferFrom to avoid transfer tokens
-    function safeTransferFrom(address from, address to, uint256 id, uint256 value, bytes memory data) public virtual override(ERC1155) {
-        require(to == address(0), "Error: Cannot transfer contact token.");
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 id,
+        uint256 value,
+        bytes memory data
+    ) public virtual override(ERC1155) onlyOwner {
         return super.safeTransferFrom(from, to, id, value, data);
     }
     
@@ -105,8 +110,7 @@ contract ERC1155Contacts is ERC1155, Ownable, ERC1155Supply {
         uint256[] memory ids,
         uint256[] memory values,
         bytes memory data
-    ) public virtual override(ERC1155) {
-        require(to == address(0), "Error: Cannot transfer contact token.");
+    ) public virtual override(ERC1155) onlyOwner {
         return super.safeBatchTransferFrom(from, to, ids, values, data);
     }
 
@@ -124,7 +128,7 @@ contract ERC1155Contacts is ERC1155, Ownable, ERC1155Supply {
     //////////////////////////////////////////////////////////////*/
 
     function getTBATokenId(address account) internal view returns (uint256) {
-        (, , uint256 tokenId) = ERC6551Account(payable(account)).token();
+        (, , uint256 tokenId) = IERC6551Account(payable(account)).token();
         return tokenId;
     }
 }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.20;
 
 /// @dev the ERC-165 identifier for this interface is `0x6faff5f1`
 interface IERC6551Account {
@@ -32,6 +32,8 @@ interface IERC6551Account {
             address tokenContract,
             uint256 tokenId
         );
+
+    function owner() external view returns (address);
 
     /**
      * @dev Returns a value that SHOULD be modified each time the account changes state
