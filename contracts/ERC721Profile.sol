@@ -21,7 +21,6 @@ contract ERC721Profile is ERC721, ERC721URIStorage, Ownable {
     ERC6551Registry internal _ERC6551Registry;
 
     mapping(address => uint256) private _tokenIdOf;
-    mapping(address => address) private _tbaOwner;
     uint256 private _totalTBAs;
 
     /*///////////////////////////////////////////////////////////////
@@ -39,7 +38,7 @@ contract ERC721Profile is ERC721, ERC721URIStorage, Ownable {
         string memory baseURI,
         address ERC6551AccountAdr,
         address ERC6551RegistryAdr
-    ) ERC721("Piltonet Profile", "PIP") Ownable(msg.sender) {
+    ) ERC721("Piltonet Profiles", "PPS") Ownable(msg.sender) {
         _baseTokenURI = baseURI;
         
         // set ERC6551 contracts
@@ -51,19 +50,18 @@ contract ERC721Profile is ERC721, ERC721URIStorage, Ownable {
                             Functions
     //////////////////////////////////////////////////////////////*/
 
-    // mint profile NFT
-    function createProfile(address mainAccount) public onlyOwner returns (uint256) {
-        // each account can create a unique profile
+    /// @notice mint profile NFT
+    function createProfile(address mainAccount) public onlyOwner returns (address /* created tokenbound-account */) {
+        /// @dev each account can create a unique profile
         require(balanceOf(mainAccount) == 0, "Error: Profile has already been created!");
 
-        // tokenId values start at 1
+        /// @dev tokenId values start at 1
         _tokenId++;
 
-        // mint profilr NFT
+        /// @dev mint profilr NFT
         _safeMint(mainAccount, _tokenId);
 
-        // compute TBA address
-        // address _tbaAddress = tbaOf(_tokenId);
+        /// @dev create tokenbound-account
         address _tbaAddress = _ERC6551Registry.createAccount(
             _AccountImplementation,
             block.chainid,
@@ -72,54 +70,27 @@ contract ERC721Profile is ERC721, ERC721URIStorage, Ownable {
             0,
             ""
         );
+        _totalTBAs++;
 
-        // tokenURI = baseURI + tbaAddress
+        /// @dev tokenURI = baseURI + tbaAddress
         _setTokenURI(_tokenId, Utils.toString(_tbaAddress));
 
-        // save profile tba owners
-        _tokenIdOf[_tbaAddress] = _tokenId;
-        _tbaOwner[_tbaAddress] = mainAccount;
-        _totalTBAs++;
-        
         emit ProfileCreated(_tokenId, _tbaAddress);
 
-        return _tokenId;
+        return _tbaAddress;
     }
 
-    // burn profile NFT
+    /// @notice burn profile NFT
     function removeProfile(uint256 tokenId) public virtual {
-        require(ownerOf(tokenId) == msg.sender, "Error, Only account owner can remove!");
+        require(msg.sender == ownerOf(tokenId) || msg.sender == owner(), "Error, Only owner or token owner can remove!");
 
-        // reset token ownership
+        /// @dev reset token ownership
         _update(address(0), tokenId, msg.sender);
-        
-        // compute TBA address
-        address _tbaAddress = tbaOf(tokenId);
-
-        // delete tba address
-        delete _tbaOwner[_tbaAddress];
         
         emit RemoveProfile(tokenId);
     }
 
-    // return the token bound accounnt by token id, if id not exist return address(0)
-    function tbaOf(uint256 tokenId) internal view returns (address) {
-        if(ownerOf(tokenId) == address(0)) return address(0);
-        return _ERC6551Registry.account(
-            _AccountImplementation,
-            block.chainid,
-            address(this),
-            tokenId,
-            0
-        );
-    }
-    
-    // return the owner on token bound account
-    function tbaOwner(address tokenBoundAccound) external view returns (address) {
-        return _tbaOwner[tokenBoundAccound];
-    }
-    
-    // return the number of active token bound accounnts
+    /// @notice return the number of exist tokenbound-accounnts
     function totalTBAs() external view returns (uint256) {
         return _totalTBAs;
     }
@@ -132,6 +103,11 @@ contract ERC721Profile is ERC721, ERC721URIStorage, Ownable {
         _baseTokenURI = baseURI;
     }
 
+    /// @dev override IERC721 transferFrom to avoid transfer tokens
+    function transferFrom(address from, address to, uint256 tokenId) public virtual override(ERC721, IERC721) {
+        require(tokenId == 0, "Error: Cannot transfer profile token.");
+        return super.transferFrom(from, to, tokenId);
+    }
 
     // The following functions are overrides required by Solidity.
     
@@ -141,11 +117,6 @@ contract ERC721Profile is ERC721, ERC721URIStorage, Ownable {
     
     function tokenURI(uint256 tokenId) public view override(ERC721, ERC721URIStorage) returns (string memory) {
         return super.tokenURI(tokenId);
-    }
-
-    function transferFrom(address from, address to, uint256 tokenId) public virtual override(ERC721, IERC721) {
-        require(tokenId == 0, "Error: Cannot transfer profile token.");
-        return super.transferFrom(from, to, tokenId);
     }
 
     function supportsInterface(bytes4 interfaceId) public view override(ERC721, ERC721URIStorage) returns (bool) {
