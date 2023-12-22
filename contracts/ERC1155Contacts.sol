@@ -22,6 +22,26 @@ contract ERC1155Contacts is ERC1155, Ownable, ERC1155Supply {
     event ContactAdded(uint256 indexed tokenId, address indexed account, address indexed contact);
 
     /*///////////////////////////////////////////////////////////////
+                            Modifiers
+    //////////////////////////////////////////////////////////////*/
+    
+    modifier onlyProfileOwner(address account, uint256 tokenId) {
+        require(
+            _ERC721Profile.ownerOf(tokenId) == account,
+            "The account is not the tokenId owner in profile contract."
+        );
+        _;
+    }
+    
+    modifier onlyValidContact(address account) {
+        require(
+            _ERC721Profile.tbaOwner(account) != address(0),
+            "The account is not a valid token bound account."
+        );
+        _;
+    }
+
+    /*///////////////////////////////////////////////////////////////
                             Constructor
     //////////////////////////////////////////////////////////////*/
     
@@ -39,8 +59,10 @@ contract ERC1155Contacts is ERC1155, Ownable, ERC1155Supply {
                             Functions
     //////////////////////////////////////////////////////////////*/
 
-    function addContact(address contactTBA, uint256 id) public {
-        require(isProfileOwner(msg.sender, id) || msg.sender == owner(), "Error: Unauthorized request!");
+    function addContact(address contactTBA, uint256 id) public
+        onlyProfileOwner(msg.sender, id)
+        onlyValidContact(contactTBA)
+    {
         require(balanceOf(contactTBA, id) == 0, "Error: Contact has already been added!");
         
         _mint(contactTBA, id, 1, "");
@@ -67,8 +89,9 @@ contract ERC1155Contacts is ERC1155, Ownable, ERC1155Supply {
         super._update(from, to, ids, values);
     }
 
+    // return the URI of each tokenId same as ERC721Profile tokenURI
     function uri(uint256 tokenId) public view override(ERC1155) returns (string memory) {
-        return getProfileURI(tokenId);
+        return _ERC721Profile.tokenURI(tokenId);
     }
 
     function safeTransferFrom(address from, address to, uint256 id, uint256 value, bytes memory data) public virtual override(ERC1155) {
@@ -85,24 +108,5 @@ contract ERC1155Contacts is ERC1155, Ownable, ERC1155Supply {
     ) public virtual override(ERC1155) {
         require(to == address(0), "Error: Cannot transfer profile token.");
         return super.safeBatchTransferFrom(from, to, ids, values, data);
-    }
-
-    /*/////////////////////////////////////////////////////////
-                        Getter Functions
-    /////////////////////////////////////////////////////////*/
-
-    /// @notice Check the owner of same tokenId in ERC721Profile contract
-    function isProfileOwner(address account, uint256 id) public view returns (bool) {
-        return _ERC721Profile.ownerOf(id) == account;
-    }
-    
-    /// @notice Check the owner of same tokenId in ERC721Profile contract
-    function isValidContact(address contactTBA) public view returns (bool) {
-        return _ERC721Profile.tbaOwner(contactTBA) != address(0);
-    }
-    
-    /// @notice get ERC721Profile tokenURI
-    function getProfileURI(uint256 tokenId) public view returns (string memory) {
-        return _ERC721Profile.tokenURI(tokenId);
     }
 }
