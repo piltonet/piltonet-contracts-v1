@@ -21,6 +21,7 @@ contract ERC721Profile is ERC721, ERC721URIStorage, Ownable {
     ERC6551Registry internal _ERC6551Registry;
 
     mapping(address => uint256) private _tokenIdOf;
+    mapping(address => address) private _tbaOf;
     uint256 private _totalTBAs;
 
     /*///////////////////////////////////////////////////////////////
@@ -60,6 +61,7 @@ contract ERC721Profile is ERC721, ERC721URIStorage, Ownable {
 
         /// @dev mint profilr NFT
         _safeMint(mainAccount, _tokenId);
+        _tokenIdOf[mainAccount] = _tokenId;
 
         /// @dev create tokenbound-account
         address _tbaAddress = _ERC6551Registry.createAccount(
@@ -70,6 +72,7 @@ contract ERC721Profile is ERC721, ERC721URIStorage, Ownable {
             0,
             ""
         );
+        _tbaOf[mainAccount] = _tbaAddress;
         _totalTBAs++;
 
         /// @dev tokenURI = baseURI + tbaAddress
@@ -90,6 +93,11 @@ contract ERC721Profile is ERC721, ERC721URIStorage, Ownable {
         emit RemoveProfile(tokenId);
     }
 
+    /// @notice return the number of exist tokenbound-accounnts
+    function tokenOf(address account) external view returns (uint256, address) {
+        return (_tokenIdOf[account], _tbaOf[account]);
+    }
+    
     /// @notice return the number of exist tokenbound-accounnts
     function totalTBAs() external view returns (uint256) {
         return _totalTBAs;
