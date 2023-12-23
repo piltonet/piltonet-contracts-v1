@@ -1,9 +1,17 @@
 import { HardhatUserConfig } from 'hardhat/types';
 import '@nomicfoundation/hardhat-toolbox'
+import 'hardhat-abi-exporter';
 import 'dotenv/config'
 
 const config: HardhatUserConfig = {
   solidity: "0.8.20",
+  abiExporter: {
+    path: process.env.CONTRACT_ABI_PATH,
+    runOnCompile: true,
+    clear: true,
+    flat: true,
+    spacing: 2,
+  },
   defaultNetwork: "victestnet",
   networks: {
     victestnet: {
