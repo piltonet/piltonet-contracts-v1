@@ -64,7 +64,12 @@ contract ERC1155Contacts is ERC1155, ERC1155Supply, Ownable {
         onlyTBAOwner(senderTBA)
         onlyRegisteredTBA(contactTBA)
     {
+        require(senderTBA != contactTBA, "Error: The account cannot be its own contact!");
+
+        /// @dev get tokenbound-account tokenId from ERC6551Account
         uint256 tokenId = getTBATokenId(senderTBA);
+
+        /// @dev save tba as main owner of its tokenId 
         _idOwner[tokenId] = senderTBA;
 
         require(balanceOf(contactTBA, tokenId) == 0, "Error: Contact has already been added!");
