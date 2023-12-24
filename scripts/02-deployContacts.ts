@@ -3,6 +3,8 @@ import * as fs from 'fs';
 
 async function main() {
   const NETWORK = "victestnet";
+  const abiDir = `${process.env.CONTRACTS_ABI_PATH}/abi`;
+  const outcomeAbiDir = `${process.env.OUTCOME_CONTRACTS_PATH}/abi`;
   const deploymentsDir = `${process.env.OUTCOME_CONTRACTS_PATH}/deployments/${NETWORK}`;
 
   const deployedERC721Profile = require(`.${deploymentsDir}/ERC721Profile.json`);
@@ -23,6 +25,9 @@ async function main() {
   }
   fs.writeFileSync(`${deploymentsDir}/ERC1155Contacts.json`, JSON.stringify(ContactsContract))
   console.log("ERC1155Contacts deployed to:", ContactsContract.address);
+
+  // copy abi file to outcome/abi
+  fs.copyFileSync(`${abiDir}/ERC1155Contacts.json`, `${outcomeAbiDir}/ERC1155Contacts.json`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
