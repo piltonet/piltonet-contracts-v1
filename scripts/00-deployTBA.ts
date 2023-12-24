@@ -3,9 +3,11 @@ import * as fs from 'fs';
 
 async function main() {
   const NETWORK = "victestnet";
+  const abiDir = `${process.env.CONTRACTS_ABI_PATH}/abi`;
+  const outcomeAbiDir = `${process.env.OUTCOME_CONTRACTS_PATH}/abi`;
   const deploymentsDir = `${process.env.OUTCOME_CONTRACTS_PATH}/deployments/${NETWORK}`;
   if (!fs.existsSync(deploymentsDir)) fs.mkdirSync(deploymentsDir);
-
+  
   const [deployer] = await ethers.getSigners();
   console.log("Deploying contracts with the account:", deployer.address);
 
@@ -19,6 +21,9 @@ async function main() {
   }
   fs.writeFileSync(`${deploymentsDir}/ERC6551Account.json`, JSON.stringify(ERC6551AccountContract))
   console.log("ERC6551Account deployed to:", ERC6551AccountContract.address);
+  
+  // copy abi file to outcome/abi
+  fs.copyFileSync(`${abiDir}/ERC6551Account.json`, `${outcomeAbiDir}/ERC6551Account.json`);
 
   // ERC6551Registry
   const ERC6551Registry = await ethers.deployContract("ERC6551Registry", {
@@ -30,6 +35,9 @@ async function main() {
   }
   fs.writeFileSync(`${deploymentsDir}/ERC6551Registry.json`, JSON.stringify(ERC6551RegistryContract))
   console.log("ERC6551Registry deployed to:", ERC6551RegistryContract.address);
+
+  // copy abi file to outcome/abi
+  fs.copyFileSync(`${abiDir}/ERC6551Registry.json`, `${outcomeAbiDir}/ERC6551Registry.json`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

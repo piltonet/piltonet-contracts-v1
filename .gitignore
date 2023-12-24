@@ -14,5 +14,5 @@ node_modules
 /coverage
 /coverage.json
 
-# outcome contracts abi & deployments
-/outcome
+# assets contracts abi
+/assets
