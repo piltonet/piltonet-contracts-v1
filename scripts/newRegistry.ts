@@ -3,7 +3,7 @@ import { ethers } from "hardhat";
 async function main() {
   const NETWORK = "victestnet";
   const chainId = 89;
-  const deploymentsDir = `../deployments/${NETWORK}`;
+  const deploymentsDir = `.${process.env.OUTCOME_CONTRACTS_PATH}/deployments/${NETWORK}`;
 
   const deployedDIDNFTs = require(`${deploymentsDir}/DIDNFTs.json`);
   const deployedDIDAccount = require(`${deploymentsDir}/DIDAccount.json`);

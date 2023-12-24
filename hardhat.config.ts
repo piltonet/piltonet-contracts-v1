@@ -6,7 +6,7 @@ import 'dotenv/config'
 const config: HardhatUserConfig = {
   solidity: "0.8.20",
   abiExporter: {
-    path: process.env.CONTRACT_ABI_PATH,
+    path: `${process.env.OUTCOME_CONTRACTS_PATH}/abi`,
     runOnCompile: true,
     clear: true,
     flat: true,

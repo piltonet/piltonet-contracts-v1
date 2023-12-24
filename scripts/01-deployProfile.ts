@@ -3,7 +3,7 @@ import * as fs from 'fs';
 
 async function main() {
   const NETWORK = "victestnet";
-  const deploymentsDir = `./deployments/${NETWORK}`;
+  const deploymentsDir = `${process.env.OUTCOME_CONTRACTS_PATH}/deployments/${NETWORK}`;
 
   const deployedERC6551Account = require(`.${deploymentsDir}/ERC6551Account.json`);
   const deployedERC6551Registry = require(`.${deploymentsDir}/ERC6551Registry.json`);
