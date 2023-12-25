@@ -16,3 +16,6 @@ node_modules
 
 # assets contracts abi
 /assets
+
+# temp files - only dev
+/temp
