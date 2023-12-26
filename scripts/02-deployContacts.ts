@@ -13,11 +13,11 @@ async function main() {
   console.log("Deploying contracts with the account:", deployer.address);
 
   // ERC1155Contacts
-  const ERC1155Contacts = await ethers.deployContract("ERC1155Contacts", [
+  const ERC1155Contacts = await ethers.deployContract("contracts/ERC1155Contacts.sol:ERC1155Contacts", [
     "https://piltonet.com/profile/",
-    // deployedERC721Profile.address
+    deployedERC721Profile.address
   ], {
-    gasLimit: 4000000
+    gasLimit: 6000000
   });
   const ContactsContract = {
     deployer: deployer.address,
