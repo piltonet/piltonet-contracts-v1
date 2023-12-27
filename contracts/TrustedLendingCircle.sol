@@ -19,7 +19,7 @@ contract TrustedLendingCircle is Ownable(msg.sender) {
     /* CONSTANTS */
     /*********************************************************************************/
 
-    uint16 public constant CONTRACT_VERSION = 1;
+    uint16 public constant CONTRACT_VERSION = 2;
 
     uint8 internal constant CIRCLES_MIN_MEMBERS = 3; // Minimum number of members is 3 accounts
     uint8 internal constant CIRCLES_MAX_MEMBERS = 15; // Maximum number of members is 15 accounts
@@ -164,8 +164,7 @@ contract TrustedLendingCircle is Ownable(msg.sender) {
     // --------------------------------------------------------------------------------
     function setupCircle(
         string memory circle_name,
-        uint fixed_pay_x100,
-        uint fixed_loan_x100,
+        uint fixed_amount_x100,
         uint8 min_members,
         uint8 max_members,
         _winnersOrder winners_order,
@@ -180,16 +179,16 @@ contract TrustedLendingCircle is Ownable(msg.sender) {
         if (paymentToken == CIRCLES_PAYMENT_TOKEN0) {
             if (paymentType == _paymentType.FIXED_PAY) {
                 require(
-                    fixed_pay_x100 >= CIRCLES_MIN_PAY_X100_TOKEN0 &&
-                        fixed_pay_x100 <= CIRCLES_MAX_PAY_X100_TOKEN0,
+                    fixed_amount_x100 >= CIRCLES_MIN_PAY_X100_TOKEN0 &&
+                        fixed_amount_x100 <= CIRCLES_MAX_PAY_X100_TOKEN0,
                     "Error: The pay amount is out of range."
                 );
             }
             if (paymentType == _paymentType.FIXED_LOAN) {
                 require(
-                    fixed_loan_x100 >=
+                    fixed_amount_x100 >=
                         CIRCLES_MIN_PAY_X100_TOKEN0.mul(max_members) &&
-                        fixed_loan_x100 <=
+                        fixed_amount_x100 <=
                         CIRCLES_MAX_PAY_X100_TOKEN0.mul(min_members),
                     "Error: The pay amount is out of range."
                 );
@@ -198,16 +197,16 @@ contract TrustedLendingCircle is Ownable(msg.sender) {
         if (paymentToken == CIRCLES_PAYMENT_TOKEN1) {
             if (paymentType == _paymentType.FIXED_PAY) {
                 require(
-                    fixed_pay_x100 >= CIRCLES_MIN_PAY_X100_TOKEN1 &&
-                        fixed_pay_x100 <= CIRCLES_MAX_PAY_X100_TOKEN1,
+                    fixed_amount_x100 >= CIRCLES_MIN_PAY_X100_TOKEN1 &&
+                        fixed_amount_x100 <= CIRCLES_MAX_PAY_X100_TOKEN1,
                     "Error: The pay amount is out of range."
                 );
             }
             if (paymentType == _paymentType.FIXED_LOAN) {
                 require(
-                    fixed_loan_x100 >=
+                    fixed_amount_x100 >=
                         CIRCLES_MIN_PAY_X100_TOKEN1.mul(max_members) &&
-                        fixed_loan_x100 <=
+                        fixed_amount_x100 <=
                         CIRCLES_MAX_PAY_X100_TOKEN1.mul(min_members),
                     "Error: The pay amount is out of range."
                 );
@@ -230,10 +229,10 @@ contract TrustedLendingCircle is Ownable(msg.sender) {
 
         circleName = circle_name;
         fixedPay = paymentType == _paymentType.FIXED_PAY
-            ? (1 ether * fixed_pay_x100) / 10 ** 2
+            ? (1 ether * fixed_amount_x100) / 10 ** 2
             : 0 ether;
         fixedLoan = paymentType == _paymentType.FIXED_LOAN
-            ? (1 ether * fixed_loan_x100) / 10 ** 2
+            ? (1 ether * fixed_amount_x100) / 10 ** 2
             : 0 ether;
         minMembers = min_members;
         maxMembers = max_members;
@@ -413,7 +412,7 @@ contract TrustedLendingCircle is Ownable(msg.sender) {
             ? string(
                 abi.encodePacked(
                     '"payment_type": "fixed_pay"',
-                    ', "fixed_pay_x100": ',
+                    ', "fixed_amount_x100": ',
                     fixedPay.mul(10 ** 2).div(1 ether).toString()
                 )
             )
@@ -421,7 +420,7 @@ contract TrustedLendingCircle is Ownable(msg.sender) {
             ? string(
                 abi.encodePacked(
                     '"payment_type": "fixed_loan"',
-                    ', "fixed_loan_x100": ',
+                    ', "fixed_amount_x100": ',
                     fixedLoan.mul(10 ** 2).div(1 ether).toString()
                 )
             )
