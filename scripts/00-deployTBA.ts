@@ -12,7 +12,7 @@ async function main() {
   console.log("Deploying contracts with the account:", deployer.address);
 
   // ERC6551Account
-  const ERC6551Account = await ethers.deployContract("ERC6551Account", {
+  const ERC6551Account = await ethers.deployContract("contracts/tba/ERC6551Account.sol:ERC6551Account", {
     gasLimit: 4000000
   });
   const ERC6551AccountContract = {
@@ -26,7 +26,7 @@ async function main() {
   fs.copyFileSync(`${abiDir}/ERC6551Account.json`, `${outcomeAbiDir}/ERC6551Account.json`);
 
   // ERC6551Registry
-  const ERC6551Registry = await ethers.deployContract("ERC6551Registry", {
+  const ERC6551Registry = await ethers.deployContract("contracts/tba/ERC6551Registry.sol:ERC6551Registry", {
     gasLimit: 4000000
   });
   const ERC6551RegistryContract = {

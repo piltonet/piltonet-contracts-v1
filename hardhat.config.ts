@@ -15,7 +15,7 @@ const config: HardhatUserConfig = {
   defaultNetwork: "victestnet",
   networks: {
     victestnet: {
-      url: "https://rpc.testnet.tomochain.com",
+      url: "https://rpc-testnet.viction.xyz",
       accounts: [process.env.PRIVATE_KEY || ""]
     },
     vicmainnet: {
