@@ -90,6 +90,33 @@ contract ERC1155Contacts is ERC1155, ERC1155Supply, Ownable {
         emit ContactAdded(tokenId, msg.sender, contactTBA);
     }
 
+    /// @dev temporarily due to json-rpc error
+    function addContactByOwner(address profileTBA, address contactTBA) public
+        onlyOwner()
+        onlyRegisteredTBA(profileTBA)
+        onlyRegisteredTBA(contactTBA)
+    {
+        require(profileTBA != contactTBA, "Error: The account cannot be its own contact!");
+
+        /// @dev get tokenbound-account tokenId from ERC6551Account
+        uint256 tokenId = getTBATokenId(profileTBA);
+
+        /// @dev store tba as main owner of its tokenId 
+        _idOwner[tokenId] = profileTBA;
+
+        require(balanceOf(contactTBA, tokenId) == 0, "Error: Contact has already been added!");
+        
+        _mint(contactTBA, tokenId, 1, "");
+        
+        /// @dev store in contact list if both have the other token 
+        if(balanceOf(profileTBA, getTBATokenId(contactTBA)) > 0) {
+            _contactList[profileTBA].push(contactTBA);
+            _contactList[contactTBA].push(profileTBA);
+        }
+
+        emit ContactAdded(tokenId, profileTBA, contactTBA);
+    }
+
     function contactsOf(address account) public view returns (address[] memory) {
         return _contactList[account];
     }
