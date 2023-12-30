@@ -18,10 +18,25 @@ const config: HardhatUserConfig = {
       url: "https://rpc-testnet.viction.xyz",
       accounts: [process.env.PRIVATE_KEY || ""]
     },
-    vicmainnet: {
+    viction: {
       url: "https://rpc.tomochain.com",
       accounts: [process.env.PRIVATE_KEY || ""]
     }
+  },
+  etherscan: {
+    apiKey: {
+      victestnet: "tomoscan2023",
+    },
+    customChains: [
+      {
+        network: "victestnet",
+        chainId: 89,
+        urls: {
+          apiURL: "https://scan-api-testnet.viction.xyz/api/contract/hardhat/verify",
+          browserURL: "https://www.testnet.vicscan.xyz"
+        }
+      }
+    ]
   }
 }
 
