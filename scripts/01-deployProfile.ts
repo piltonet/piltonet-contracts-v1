@@ -2,7 +2,7 @@ import { ethers } from "hardhat";
 import * as fs from 'fs';
 
 async function main() {
-  const NETWORK = "victestnet";
+  const NETWORK = process.env.DEFAULT_NETWORK;
   const abiDir = `${process.env.CONTRACTS_ABI_PATH}/abi`;
   const outcomeAbiDir = `${process.env.OUTCOME_CONTRACTS_PATH}/abi`;
   const deploymentsDir = `${process.env.OUTCOME_CONTRACTS_PATH}/deployments/${NETWORK}`;

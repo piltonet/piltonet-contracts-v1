@@ -12,14 +12,18 @@ const config: HardhatUserConfig = {
     flat: true,
     spacing: 2,
   },
-  defaultNetwork: "victestnet",
+  defaultNetwork: process.env.DEFAULT_NETWORK,
   networks: {
+    viction: {
+      url: "https://rpc.viction.xyz",
+      accounts: [process.env.PRIVATE_KEY || ""]
+    },
     victestnet: {
       url: "https://rpc-testnet.viction.xyz",
       accounts: [process.env.PRIVATE_KEY || ""]
     },
-    viction: {
-      url: "https://rpc.tomochain.com",
+    tomotestnet: {
+      url: "https://rpc.testnet.tomochain.com",
       accounts: [process.env.PRIVATE_KEY || ""]
     }
   },

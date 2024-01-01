@@ -1,7 +1,7 @@
 import { ethers } from "hardhat";
 
 async function main() {
-  const NETWORK = "victestnet";
+  const NETWORK = process.env.DEFAULT_NETWORK;
   const chainId = 89;
   const deploymentsDir = `.${process.env.OUTCOME_CONTRACTS_PATH}/deployments/${NETWORK}`;
 

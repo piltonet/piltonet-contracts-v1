@@ -1,7 +1,7 @@
 import { ethers } from "hardhat";
 
 async function main() {
-  const NETWORK = "victestnet";
+  const NETWORK = process.env.DEFAULT_NETWORK;
   const deploymentsDir = `${process.env.OUTCOME_CONTRACTS_PATH}/deployments/${NETWORK}`;
   const deployedVRC25PCUSD = require(`.${deploymentsDir}/VRC25PCUSD.json`);
   const VRC25PCUSD = await ethers.getContractAt("contracts/VRC25PCUSD.sol:VRC25PCUSD", deployedVRC25PCUSD.address);
