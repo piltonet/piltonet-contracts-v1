@@ -31,7 +31,7 @@ contract TrustedLendingCircle is Ownable(msg.sender) {
     uint internal constant CIRCLES_MAX_PAY_X100_TOKEN1 = 50000; // Maximum payment each round is 500 CUSD
     address internal constant CIRCLES_SERVICE_ADDRESS = 0xa61c159Ac42a3861d799D31bfE075B6E9a57C9f6; // Piltonet service pot address
     uint16 internal constant CIRCLES_SERVICE_CHARGE_X10000 = 20; // The service charge is 0.2%
-    uint16 internal constant CIRCLES_MAX_CREATOR_EARNINGS_X10000 = 100; // The maximum creator earnings is 1%
+    uint16 internal constant CIRCLES_MAX_CREATOR_EARNINGS_X10000 = 500; // The maximum creator earnings is 5%
     uint16 internal constant CIRCLES_MAX_PATIENCE_BENEFIT_X10000 = 3600; // The maximum benefit of patience (per year) is 36%
 
     /*********************************************************************************/
@@ -146,7 +146,7 @@ contract TrustedLendingCircle is Ownable(msg.sender) {
         );
         require(
             creator_earnings_x10000 <= CIRCLES_MAX_CREATOR_EARNINGS_X10000,
-            "Error: The patience benefit is out of range."
+            "Error: The creator earnings is out of range."
         );
 
         paymentToken = payment_token;
