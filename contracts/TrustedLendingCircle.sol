@@ -24,7 +24,7 @@ contract TrustedLendingCircle is Ownable(msg.sender) {
     uint8 internal constant CIRCLES_MIN_MEMBERS = 3; // Minimum number of members is 3 accounts
     uint8 internal constant CIRCLES_MAX_MEMBERS = 15; // Maximum number of members is 15 accounts
     address internal constant CIRCLES_PAYMENT_TOKEN0 = address(0); // VIC token (0x0000000000000000000000000000000000000000)
-    address internal constant CIRCLES_PAYMENT_TOKEN1 = 0xdbf3CDb8Eed6d143b667B59EE15dE49A68D6DC1f; // CUSD contract address
+    address internal constant CIRCLES_PAYMENT_TOKEN1 = 0x093cD3E7806f6EadC76F9578fBF8BaCdf3aC7C3e; // CUSD contract address
     uint internal constant CIRCLES_MIN_PAY_X100_TOKEN0 = 10000; // Minimum payment each round is 100 VIC
     uint internal constant CIRCLES_MAX_PAY_X100_TOKEN0 = 50000; // Maximum payment each round is 500 VIC
     uint internal constant CIRCLES_MIN_PAY_X100_TOKEN1 = 10000; // Minimum payment each round is 100 CUSD
