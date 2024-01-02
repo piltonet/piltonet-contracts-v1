@@ -109,19 +109,36 @@ contract TLCC is Ownable(msg.sender) {
     address internal admin;
     uint128 internal contributionSize;
     uint256 internal startTime;
-    address public tokenContract; // public - allow easy verification of token contract.
+    
+    
+    address public paymentToken; // public - allow easy verification of token contract.
 
-    // TLCC state
-    // Currently, we support three different types of TLCC
-    // 0 : TLCC where lowest bidder wins (Bidding TLCC)
-    // 1 : TLCC where winners are chosen at random (random Selection TLCC)
-    // 2 : TLCC where winners are selected through a ordered list (pre-determined TLCC)
-    enum typesOfTLCC {
-        BIDDING_TLCC,
-        RANDOM_SELECTION_TLCC,
-        PRE_DETERMINED_TLCC
+    // Payment Type
+    // 0 : Loan amount will be based on the number of members and other rules. (FIXED_PAY)
+    // 1 : Contribution amount will be based on the number of members and other rules. (FIXED_LOAN)
+    enum _paymentType {
+        FIXED_PAY,
+        FIXED_LOAN
     }
-    typesOfTLCC roscaType;
+    _paymentType paymentType;
+
+    uint16 internal roundDays;
+
+    // Winners Order
+    // 0 : Winner(s) is/are chosen at random (RANDOM)
+    // 1 : Winner(s) is/are selected through a predetermined ordered list (FIXED)
+    // 2 : Lowest bidder wins (BIDDING)
+    enum _winnersOrder {
+        RANDOM,
+        FIXED,
+        BIDDING
+    }
+    _winnersOrder winnersOrder;
+
+    uint16 internal creatorEarnings; // Multiplied by Ten Thousand Times
+    uint16 internal patienceBenefit; // Multiplied by Ten Thousand Times
+
+
     bool public endOfTLCC = false;
     bool public adminSurplusCollected = false;
     // A discount is the difference between a winning bid and the pot value. totalDiscounts is the amount
@@ -203,7 +220,7 @@ contract TLCC is Ownable(msg.sender) {
     }
 
     modifier onlyBIDDING_TLCC() {
-        require(roscaType == typesOfTLCC.BIDDING_TLCC);
+        require(winnersOrder == _winnersOrder.BIDDING);
         _;
     }
 
@@ -216,36 +233,40 @@ contract TLCC is Ownable(msg.sender) {
                             Constructor
     //////////////////////////////////////////////////////////////*/
     constructor(
-        address erc20tokenContract, // pass address(0) to use native token
-        typesOfTLCC roscaType_,
-        uint256 roundPeriodInSecs_,
-        uint128 contributionSize_,
-        uint256 startTime_,
-        address[] memory members_,
-        uint16 serviceFeeInThousandths_
+        address payment_token, // address(0) for VIC
+        _paymentType payment_type,
+        uint16 round_days,
+        _winnersOrder winners_order,
+        uint16 patience_benefit_x10000,
+        uint16 creator_earnings_x10000
     ) 
 	{
-        require(
-            roundPeriodInSecs_ != 0 &&
-                startTime_ >= block.timestamp.sub(MAXIMUM_TIME_PAST_SINCE_TLCC_START_SECS) &&
-                serviceFeeInThousandths_ <= MAX_FEE_IN_X1000 &&
-                members_.length > 1 &&
-                members_.length <= 256,
-            "member count must be 1 < x <= 256"
-        );
+        // require(
+        //     roundPeriodInSecs_ != 0 &&
+        //         startTime_ >= block.timestamp.sub(MAXIMUM_TIME_PAST_SINCE_TLCC_START_SECS) &&
+        //         serviceFeeInThousandths_ <= MAX_FEE_IN_X1000 &&
+        //         members_.length > 1 &&
+        //         members_.length <= 256,
+        //     "member count must be 1 < x <= 256"
+        // );
 
-        roundPeriodInSecs = roundPeriodInSecs_;
-        contributionSize = contributionSize_;
-        startTime = startTime_;
-        roscaType = roscaType_;
-        tokenContract = erc20tokenContract;
-        serviceFeeInThousandths = serviceFeeInThousandths_;
+        paymentToken = payment_token;
+        paymentType = payment_type;
+        roundDays = round_days;
+        winnersOrder = winners_order;
+        creatorEarnings = creator_earnings_x10000;
+        patienceBenefit = patience_benefit_x10000;
+        
+        // roundPeriodInSecs = roundPeriodInSecs_;
+        // contributionSize = contributionSize_;
+        // startTime = startTime_;
+        // serviceFeeInThousandths = serviceFeeInThousandths_;
 
         admin = msg.sender;
 
-        for (uint8 i = 0; i < members_.length; i++) {
-            addMember(members_[i]);
-        }
+        // for (uint8 i = 0; i < members_.length; i++) {
+        //     addMember(members_[i]);
+        // }
 
         require(members[msg.sender].alive);
 
@@ -304,7 +325,7 @@ contract TLCC is Ownable(msg.sender) {
      */
     function cleanUpPreviousRound() internal {
         // for pre-ordered TLCC, pick the next person in the list (delinquent or not)
-        if (roscaType == typesOfTLCC.PRE_DETERMINED_TLCC) {
+        if (winnersOrder == _winnersOrder.FIXED) {
             winnerAddress = membersAddresses[currentRound - 1];
         } else {
             // We keep the unpaid participants at positions [0..num_participants - current_round) so that we can uniformly select
@@ -459,7 +480,7 @@ contract TLCC is Ownable(msg.sender) {
      */
     function validateAndReturnContribution() internal returns (uint256) {
         // dontMakePublic
-        bool isPaymentByVIC = (tokenContract == address(0));
+        bool isPaymentByVIC = (paymentToken == address(0));
         require(
             isPaymentByVIC || msg.value <= 0,
             "token TLCCs should not accept VIC"
@@ -468,7 +489,7 @@ contract TLCC is Ownable(msg.sender) {
         uint256 value = (
             isPaymentByVIC
                 ? msg.value
-                : IVRC25(tokenContract).allowance(msg.sender, address(this))
+                : IVRC25(paymentToken).allowance(msg.sender, address(this))
         );
         require(value != 0);
 
@@ -476,7 +497,7 @@ contract TLCC is Ownable(msg.sender) {
             return value;
         }
         require(
-            IVRC25(tokenContract).transferFrom(msg.sender, address(this), value)
+            IVRC25(paymentToken).transferFrom(msg.sender, address(this), value)
         );
         return value;
     }
@@ -571,11 +592,11 @@ contract TLCC is Ownable(msg.sender) {
 
     // Sends funds (either VIC or CUSD) to msg.sender. Returns whether successful.
     function sendFundsToMsgSender(uint256 value) internal returns (bool) {
-        bool isPaymentByVIC = (tokenContract == address(0));
+        bool isPaymentByVIC = (paymentToken == address(0));
         if (isPaymentByVIC) {
             return payable(msg.sender).send(value);
         }
-        return IVRC25(tokenContract).transfer(msg.sender, value);
+        return IVRC25(paymentToken).transfer(msg.sender, value);
     }
 
     /**
@@ -658,12 +679,12 @@ contract TLCC is Ownable(msg.sender) {
      * @return uint256
      */
     function getBalance() internal view virtual returns (uint256) {
-        bool isPaymentByVIC = (tokenContract == address(0));
+        bool isPaymentByVIC = (paymentToken == address(0));
 
         return
             isPaymentByVIC
                 ? address(this).balance
-                : IVRC25(tokenContract).balanceOf(address(this));
+                : IVRC25(paymentToken).balanceOf(address(this));
     }
 
     /**
@@ -757,10 +778,10 @@ contract TLCC is Ownable(msg.sender) {
         emit LogEmergencyWithdrawalPerformed(getBalance(), currentRound);
         bool fundsTransferSuccess = false;
         // Send everything, including potential fees, to admin to disperse offline to participants.
-        bool isPaymentByVIC = (tokenContract == address(0));
+        bool isPaymentByVIC = (paymentToken == address(0));
         if (!isPaymentByVIC) {
-            uint256 balance = IVRC25(tokenContract).balanceOf(address(this));
-            fundsTransferSuccess = IVRC25(tokenContract).transfer(
+            uint256 balance = IVRC25(paymentToken).balanceOf(address(this));
+            fundsTransferSuccess = IVRC25(paymentToken).transfer(
                 admin,
                 balance
             );
