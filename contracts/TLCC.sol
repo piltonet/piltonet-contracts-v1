@@ -152,6 +152,13 @@ contract TLCC is Ownable(msg.sender) {
     uint256 public lowestBid = 0;
     address public winnerAddress = address(0); // bidder who bid the lowest so far
 
+    struct User {
+        uint256 credit; // amount of funds user has contributed - winnings (not including discounts) so far
+        bool debt; // true if user won the pot while not in good standing and is still not in good standing
+        bool paid; // yes if the member had won a Round
+        bool alive; // needed to check if a member is indeed a member
+    }
+
     mapping(address => User) internal members;
     address[] public membersAddresses; // for iterating through members' addresses
 
@@ -166,13 +173,6 @@ contract TLCC is Ownable(msg.sender) {
     bool public escapeHatchEnabled = false;
     bool public escapeHatchActive = false;
     bool private reentrancyLock = false;
-
-    struct User {
-        uint256 credit; // amount of funds user has contributed - winnings (not including discounts) so far
-        bool debt; // true if user won the pot while not in good standing and is still not in good standing
-        bool paid; // yes if the member had won a Round
-        bool alive; // needed to check if a member is indeed a member
-    }
 
     /*///////////////////////////////////////////////////////////////
                             Modifiers
@@ -268,7 +268,7 @@ contract TLCC is Ownable(msg.sender) {
         //     addMember(members_[i]);
         // }
 
-        require(members[msg.sender].alive);
+        // require(members[msg.sender].alive);
 
         emit LogStartOfRound(currentRound);
     }
