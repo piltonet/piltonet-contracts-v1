@@ -12,8 +12,8 @@ async function main() {
   const [deployer] = await ethers.getSigners();
   console.log("Deploying contracts with the account:", deployer.address);
 
-  // ERC1155Contacts
-  const ERC1155Contacts = await ethers.deployContract("contracts/ERC1155Contacts.sol:ERC1155Contacts", [
+  // TrustedContacts
+  const TrustedContacts = await ethers.deployContract("contracts/TrustedContacts.sol:TrustedContacts", [
     "https://piltonet.com/profile/",
     deployedERC721Profile.address
   ], {
@@ -21,13 +21,13 @@ async function main() {
   });
   const ContactsContract = {
     deployer: deployer.address,
-    address: await ERC1155Contacts.getAddress()
+    address: await TrustedContacts.getAddress()
   }
-  fs.writeFileSync(`${deploymentsDir}/ERC1155Contacts.json`, JSON.stringify(ContactsContract))
-  console.log("ERC1155Contacts deployed to:", ContactsContract.address);
+  fs.writeFileSync(`${deploymentsDir}/TrustedContacts.json`, JSON.stringify(ContactsContract))
+  console.log("TrustedContacts deployed to:", ContactsContract.address);
 
   // copy abi file to outcome/abi
-  fs.copyFileSync(`${abiDir}/ERC1155Contacts.json`, `${outcomeAbiDir}/ERC1155Contacts.json`);
+  fs.copyFileSync(`${abiDir}/TrustedContacts.json`, `${outcomeAbiDir}/TrustedContacts.json`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

@@ -2,12 +2,13 @@
 pragma solidity ^0.8.20;
 
 import "vrc25/contracts/interfaces/IVRC25.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./access/RegisteredTBA.sol";
+import "./interfaces/ITLCC.sol";
 import "./utils/SafeMath.sol";
 
 /// @title Trusted Lending Circle Contract - TLCC
 /// @notice TLCC on Viction
-/// @dev Supports VIC and CUSD (any VRC25 tokens)
+/// @dev Supports VIC and CUSD (+ any VRC25 tokens)
 /*///////////////////////////////////////////////////////////////
 A TLCC (Trusted Lending Circle Contract) is an agreement between trusted
 family and friends to contribute regularly to a pool of funds and give it
@@ -17,7 +18,7 @@ The person who deploys the TLCC is known as the contract owner (termed "Admin").
 Admin specifies the main parameters of the circle while deploying the TLCC.
 Such as payment token, length of each period, etc.
 //////////////////////////////////////////////////////////////*/
-contract TLCC is Ownable(msg.sender) {
+contract TLCC is ITLCC, RegisteredTBA {
     using SafeMath for *;
 	
     uint16 public constant TLCC_VERSION = 2;
@@ -43,74 +44,17 @@ contract TLCC is Ownable(msg.sender) {
     address internal constant ESCAPE_HATCH_ENABLER = 0x2B27F8c647872BC0f5E4C7cA8e3aEAEe19A28f3A;
 
     /*///////////////////////////////////////////////////////////////
-                            Events
-    //////////////////////////////////////////////////////////////*/
-
-    event LogContributionMade(
-        address indexed user,
-        uint256 amount,
-        uint256 currentRound
-    );
-    event LogStartOfRound(uint256 currentRound);
-    event LogBidSurpassed(
-        uint256 prevBid,
-        address indexed prevWinnerAddress,
-        uint256 currentRound
-    );
-    event LogNewLowestBid(
-        uint256 bid,
-        address indexed winnerAddress,
-        uint256 currentRound
-    );
-    event LogRoundFundsReleased(
-        address indexed winnerAddress,
-        uint256 amount,
-        uint256 roundDiscount,
-        uint256 currentRound
-    );
-    event LogFundsWithdrawal(
-        address indexed user,
-        uint256 amount,
-        uint256 currentRound
-    );
-    // Fired when withdrawer is entitled for a larger amount than the contract
-    // actually holds (excluding fees). A LogFundsWithdrawal will follow
-    // this event with the actual amount released, if send() is successful.
-    event LogCannotWithdrawFully(
-        address indexed user,
-        uint256 creditAmount,
-        uint256 currentRound
-    );
-    event LogUnsuccessfulBid(
-        address indexed bidder,
-        uint256 bid,
-        uint256 lowestBid,
-        uint256 currentRound
-    );
-    event LogEndOfTLCC();
-    event LogForepersonSurplusWithdrawal(uint256 amount);
-    event LogFeesWithdrawal(uint256 amount);
-
-    // Escape hatch related events.
-    event LogEscapeHatchEnabled();
-    event LogEscapeHatchActivated();
-    event LogEmergencyWithdrawalPerformed(
-        uint256 fundsDispersed,
-        uint256 currentRound
-    );
-
-    /*///////////////////////////////////////////////////////////////
                             States
     //////////////////////////////////////////////////////////////*/
     // TLCC parameters
     uint256 internal roundPeriodInSecs;
     uint16 internal serviceFeeInThousandths;
     uint16 public currentRound = 1; // circle is started the moment it is created
-    address internal admin;
     uint128 internal contributionSize;
     uint256 internal startTime;
     
     
+    address internal circleAdmin;
     address public paymentToken; // public - allow easy verification of token contract.
 
     // Payment Type
@@ -189,13 +133,13 @@ contract TLCC is Ownable(msg.sender) {
         _;
     }
 
-    modifier onlyFromMember() {
+    modifier onlyMember() {
         require(members[msg.sender].alive);
         _;
     }
 
-    modifier onlyFromForeperson() {
-        require(msg.sender == admin);
+    modifier onlyAdmin() {
+        require(msg.sender == circleAdmin);
         _;
     }
 
@@ -233,6 +177,7 @@ contract TLCC is Ownable(msg.sender) {
                             Constructor
     //////////////////////////////////////////////////////////////*/
     constructor(
+        address circle_admin, // token bound account
         address payment_token, // address(0) for VIC
         _paymentType payment_type,
         uint16 round_days,
@@ -240,6 +185,7 @@ contract TLCC is Ownable(msg.sender) {
         uint16 patience_benefit_x10000,
         uint16 creator_earnings_x10000
     ) 
+        onlyRegisteredTBA(circle_admin)
 	{
         // require(
         //     roundPeriodInSecs_ != 0 &&
@@ -250,6 +196,7 @@ contract TLCC is Ownable(msg.sender) {
         //     "member count must be 1 < x <= 256"
         // );
 
+        circleAdmin = circle_admin;
         paymentToken = payment_token;
         paymentType = payment_type;
         roundDays = round_days;
@@ -262,7 +209,6 @@ contract TLCC is Ownable(msg.sender) {
         // startTime = startTime_;
         // serviceFeeInThousandths = serviceFeeInThousandths_;
 
-        admin = msg.sender;
 
         // for (uint8 i = 0; i < members_.length; i++) {
         //     addMember(members_[i]);
@@ -511,7 +457,7 @@ contract TLCC is Ownable(msg.sender) {
     function contribute()
         external
         payable
-        onlyFromMember
+        onlyMember
         onlyIfCircleNotEnded
         onlyIfEscapeHatchInactive
     {
@@ -549,7 +495,7 @@ contract TLCC is Ownable(msg.sender) {
         uint256 bidAmount
     )
         public
-        onlyFromMember
+        onlyMember
         onlyIfCircleNotEnded
         onlyIfEscapeHatchInactive
         onlyBIDDING_TLCC
@@ -605,7 +551,7 @@ contract TLCC is Ownable(msg.sender) {
      */
     function withdraw()
         external
-        onlyFromMember
+        onlyMember
         onlyIfEscapeHatchInactive
         nonReentrant
         returns (bool success)
@@ -653,7 +599,7 @@ contract TLCC is Ownable(msg.sender) {
      */
     function getParticipantBalance(
         address user
-    ) public view onlyFromMember returns (int256) {
+    ) public view onlyMember returns (int256) {
         int256 totalCredit = int256(userTotalCredit(user));
 
         // if circle have ended, we don't need to subtract as totalDebit should equal to default winnings
@@ -697,7 +643,7 @@ contract TLCC is Ownable(msg.sender) {
      */
     function endOfTLCCRetrieveSurplus()
         external
-        onlyFromForeperson
+        onlyAdmin
         onlyIfCircleEnded
     {
         uint256 roscaCollectionTime = SafeMath.add(
@@ -730,7 +676,7 @@ contract TLCC is Ownable(msg.sender) {
      */
     function endOfTLCCRetrieveFees()
         external
-        onlyFromForeperson
+        onlyAdmin
         onlyIfCircleEnded
     {
         uint256 tempTotalFees = totalFees; // prevent re-entry.
@@ -759,7 +705,7 @@ contract TLCC is Ownable(msg.sender) {
      * contributions and withdrawals, and allow the admin to retrieve all funds into their own account,
      * to be dispersed offline to the other participants.
      */
-    function activateEscapeHatch() external onlyFromForeperson {
+    function activateEscapeHatch() external onlyAdmin {
         require(escapeHatchEnabled);
 
         escapeHatchActive = true;
@@ -772,7 +718,7 @@ contract TLCC is Ownable(msg.sender) {
      */
     function emergencyWithdrawal()
         external
-        onlyFromForeperson
+        onlyAdmin
         onlyIfEscapeHatchActive
     {
         emit LogEmergencyWithdrawalPerformed(getBalance(), currentRound);
@@ -782,7 +728,7 @@ contract TLCC is Ownable(msg.sender) {
         if (!isPaymentByVIC) {
             uint256 balance = IVRC25(paymentToken).balanceOf(address(this));
             fundsTransferSuccess = IVRC25(paymentToken).transfer(
-                admin,
+                circleAdmin,
                 balance
             );
         }

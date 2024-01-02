@@ -6,9 +6,9 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
+import "vrc25/contracts/interfaces/IVRC25.sol";
 import  "./interfaces/IERC6551Account.sol";
 import  "./interfaces/IERC6551Executable.sol";
-import "vrc25/contracts/interfaces/IVRC25.sol";
 
 contract ERC6551Account is IERC165, IERC1271, IERC6551Account, IERC6551Executable, ERC1155Holder {
     uint256 public state;

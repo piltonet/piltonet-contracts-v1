@@ -3,18 +3,16 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "./tba/interfaces/IERC6551Account.sol";
+import "./access/ServiceAdmin.sol";
+import "./access/RegisteredTBA.sol";
 import "./utils/Utils.sol";
 
 /// @title Piltonet Contacts - ERC1155 contract
 /// @author @FAR0KH
 /// @notice This contract is used to store trust relationships between accounts registered in Profile contract
 /// @custom:security-contact security@piltonet.com
-contract ERC1155Contacts is ERC1155, ERC1155Supply, Ownable {
+contract TrustedContacts is ERC1155, ERC1155Supply, ServiceAdmin, RegisteredTBA {
     
-    address public ERC721ProfileImplementation;
-
     /// @dev store tba as main owner of its tokenId 
     mapping(uint256 => address) private _idOwner;
     
@@ -28,38 +26,14 @@ contract ERC1155Contacts is ERC1155, ERC1155Supply, Ownable {
     event ContactAdded(uint256 indexed tokenId, address indexed account, address indexed contact);
 
     /*///////////////////////////////////////////////////////////////
-                            Modifiers
-    //////////////////////////////////////////////////////////////*/
-    
-    modifier onlyTBAOwner() {
-        require(
-            getTBAProfile(msg.sender) == ERC721ProfileImplementation,
-            "The sender is not a valid tokenbound-account."
-        );
-        _;
-    }
-    
-    modifier onlyRegisteredTBA(address account) {
-        require(
-            getTBAProfile(account) == ERC721ProfileImplementation,
-            "The account is not a valid tokenbound-account."
-        );
-        _;
-    }
-
-    /*///////////////////////////////////////////////////////////////
                             Constructor
     //////////////////////////////////////////////////////////////*/
     
     constructor(
-      string memory baseURI,
-      address _ERC721ProfileImplementation
+      string memory baseURI
     )
         ERC1155(baseURI)
-        Ownable(msg.sender)
-    {
-        ERC721ProfileImplementation = _ERC721ProfileImplementation;
-    }
+    {}
 
     /*///////////////////////////////////////////////////////////////
                             Functions
@@ -92,7 +66,7 @@ contract ERC1155Contacts is ERC1155, ERC1155Supply, Ownable {
 
     /// @dev temporarily due to json-rpc error
     function addContactByOwner(address profileTBA, address contactTBA) public
-        onlyOwner()
+        onlyServiceAdmin()
         onlyRegisteredTBA(profileTBA)
         onlyRegisteredTBA(contactTBA)
     {
@@ -121,7 +95,7 @@ contract ERC1155Contacts is ERC1155, ERC1155Supply, Ownable {
         return _contactList[account];
     }
 
-    function setURI(string memory newuri) public onlyOwner {
+    function setURI(string memory newuri) public onlyServiceAdmin {
         _setURI(newuri);
     }
     
@@ -140,7 +114,7 @@ contract ERC1155Contacts is ERC1155, ERC1155Supply, Ownable {
         uint256 id,
         uint256 value,
         bytes memory data
-    ) public virtual override(ERC1155) onlyOwner {
+    ) public virtual override(ERC1155) onlyServiceAdmin {
         return super.safeTransferFrom(from, to, id, value, data);
     }
     
@@ -151,7 +125,7 @@ contract ERC1155Contacts is ERC1155, ERC1155Supply, Ownable {
         uint256[] memory ids,
         uint256[] memory values,
         bytes memory data
-    ) public virtual override(ERC1155) onlyOwner {
+    ) public virtual override(ERC1155) onlyServiceAdmin {
         return super.safeBatchTransferFrom(from, to, ids, values, data);
     }
 
@@ -164,17 +138,4 @@ contract ERC1155Contacts is ERC1155, ERC1155Supply, Ownable {
         super._update(from, to, ids, values);
     }
 
-    /*///////////////////////////////////////////////////////////////
-                            Getters
-    //////////////////////////////////////////////////////////////*/
-
-    function getTBATokenId(address account) internal view returns (uint256) {
-        (, , uint256 tokenId) = IERC6551Account(payable(account)).token();
-        return tokenId;
-    }
-    
-    function getTBAProfile(address account) internal view returns (address) {
-        (, address profileAddr,) = IERC6551Account(payable(account)).token();
-        return profileAddr;
-    }
 }

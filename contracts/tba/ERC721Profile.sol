@@ -3,14 +3,15 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "./tba/ERC6551Registry.sol";
-import "./utils/Utils.sol";
+import "../access/ServiceAdmin.sol";
+import "../utils/Utils.sol";
+import "./interfaces/IERC721Profile.sol";
+import "./ERC6551Registry.sol";
 
 /// @title Piltonet Profile - ERC725 contract
 /// @author @FAR0KH
 /// @notice This contract is used to store accounts registered in Piltonet as NFTs and release TokenBound-Accounts
-contract ERC721Profile is ERC721, ERC721URIStorage, Ownable {
+contract ERC721Profile is ERC721, ERC721URIStorage, ServiceAdmin, IERC721Profile {
     uint256 private _tokenId;
     string private _baseTokenURI;
 
@@ -39,7 +40,7 @@ contract ERC721Profile is ERC721, ERC721URIStorage, Ownable {
         string memory baseURI,
         address ERC6551AccountAdr,
         address ERC6551RegistryAdr
-    ) ERC721("Piltonet Profiles", "PPS") Ownable(msg.sender) {
+    ) ERC721("Piltonet Profiles", "PPS") {
         _baseTokenURI = baseURI;
         
         // set ERC6551 contracts
@@ -52,7 +53,7 @@ contract ERC721Profile is ERC721, ERC721URIStorage, Ownable {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice mint profile NFT
-    function createProfile(address mainAccount) public onlyOwner returns (address /* created tokenbound-account */) {
+    function createProfile(address mainAccount) public onlyServiceAdmin returns (address /* created tokenbound-account */) {
         /// @dev each account can create a unique profile
         require(balanceOf(mainAccount) == 0, "Error: Profile has already been created!");
 
@@ -85,7 +86,7 @@ contract ERC721Profile is ERC721, ERC721URIStorage, Ownable {
 
     /// @notice burn profile NFT
     function removeProfile(uint256 tokenId) public virtual {
-        require(msg.sender == ownerOf(tokenId) || msg.sender == owner(), "Error, Only owner or token owner can remove!");
+        require(msg.sender == ownerOf(tokenId) || msg.sender == serviceAdmin(), "Error, Only service admin or token owner can remove!");
 
         /// @dev reset token ownership
         _update(address(0), tokenId, msg.sender);
@@ -107,7 +108,7 @@ contract ERC721Profile is ERC721, ERC721URIStorage, Ownable {
         return _tokenId;
     }
 
-    function setBaseURI(string memory baseURI) public onlyOwner {
+    function setBaseURI(string memory baseURI) public onlyServiceAdmin {
         _baseTokenURI = baseURI;
     }
 
