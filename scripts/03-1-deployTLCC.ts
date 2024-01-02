@@ -12,7 +12,8 @@ async function main() {
 
   // TLCC
   const TLCC = await ethers.deployContract("contracts/TLCC.sol:TLCC", [
-    "0x0000000000000000000000000000000000000000", // payment_token
+    // "0x0000000000000000000000000000000000000000", // payment_token VIC
+    "0x093cD3E7806f6EadC76F9578fBF8BaCdf3aC7C3e", // payment_token CUSD
     0, // payment_type
     30, // round_days
     0, // winners_order
