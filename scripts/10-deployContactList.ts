@@ -7,15 +7,12 @@ async function main() {
   const outcomeAbiDir = `${process.env.OUTCOME_CONTRACTS_PATH}/abi`;
   const deploymentsDir = `${process.env.OUTCOME_CONTRACTS_PATH}/deployments/${NETWORK}`;
 
-  const deployedERC721Profile = require(`.${deploymentsDir}/ERC721Profile.json`);
-
   const [deployer] = await ethers.getSigners();
   console.log("Deploying contracts with the account:", deployer.address);
 
   // ContactList
   const ContactList = await ethers.deployContract("contracts/ContactList.sol:ContactList", [
-    "https://piltonet.com/profile/",
-    // deployedERC721Profile.address
+    "https://piltonet.com/profile/"
   ], {
     gasLimit: 6000000
   });

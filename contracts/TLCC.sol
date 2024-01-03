@@ -2,7 +2,9 @@
 pragma solidity ^0.8.20;
 
 import "vrc25/contracts/interfaces/IVRC25.sol";
+import "./access/ServiceAdmin.sol";
 import "./access/RegisteredTBA.sol";
+import "./access/TrustedContact.sol";
 import "./interfaces/IContactList.sol";
 import "./interfaces/ITLCC.sol";
 import "./utils/SafeMath.sol";
@@ -19,7 +21,7 @@ The person who deploys the TLCC is known as the contract owner (termed "Admin").
 Admin specifies the main parameters of the circle while deploying the TLCC.
 Such as payment token, length of each period, etc.
 //////////////////////////////////////////////////////////////*/
-contract TLCC is ITLCC, RegisteredTBA {
+contract TLCC is ITLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
     using SafeMath for *;
 	
     uint16 public constant TLCC_VERSION = 2;
@@ -317,23 +319,27 @@ contract TLCC is ITLCC, RegisteredTBA {
 
     /**
     * @dev A potential list of trusted contacts who are considered for membership in the circle.
-    * Only circle admin and moderators can add to whitelist.
+    * Only circle admin and moderators can add to the whitelist.
+    * Only trusted contacts of sender can be added to the whitelist.
     * It can only be added to the whitelist after the circle is setuped and before it is launched.
     */
-    function addToWhitelist(address[] memory _whitelist) public onlyModerators {
+    function addToWhitelist(address[] memory accounts) public 
+        onlyModerators
+        onlyTrustedContacts(accounts)
+    {
         require(
             circleStatus == _circleStatus.SETUPED,
             "Error: The circle is not setuped or is started."
         );
 
-        for (uint8 i = 0; i < _whitelist.length; i++) {
-            if (!whitelist[_whitelist[i]].alive) {
-                whitelist[_whitelist[i]] = Whitelist({
+        for (uint8 i = 0; i < accounts.length; i++) {
+            if (!whitelist[accounts[i]].alive) {
+                whitelist[accounts[i]] = Whitelist({
                     alive: true,
                     listedBy: msg.sender,
                     joined: false
                 });
-                whitelistAddresses.push(_whitelist[i]);
+                whitelistAddresses.push(accounts[i]);
             }
         }
     }

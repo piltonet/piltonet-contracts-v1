@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "./ServiceAdmin.sol";
 import "./Constants.sol";
 import "../tba/interfaces/IERC6551Account.sol";
 
-abstract contract RegisteredTBA is ServiceAdmin {
+abstract contract RegisteredTBA is Constants {
 
     /**
-     * @dev Returns the address of the service admin.
+     * @dev Returns the address of the ERC721Profile contract.
      */
     function profileAddress() public view virtual returns (address) {
         return PILTONET_PROFILE_ADDRESS;
