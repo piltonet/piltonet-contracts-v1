@@ -14,13 +14,13 @@ async function main() {
   )
   
   fs.cpSync(
-    `${process.env.OUTCOME_CONTRACTS_PATH}/byteCode/`,
-    `${process.env.PILTONETAPI_CONTRACTS_PATH}/byteCode/`,
+    `${process.env.OUTCOME_CONTRACTS_PATH}/bytecode/`,
+    `${process.env.PILTONETAPI_CONTRACTS_PATH}/bytecode/`,
     { recursive: true }
   )
   fs.cpSync(
-    `${process.env.OUTCOME_CONTRACTS_PATH}/byteCode/`,
-    `${process.env.PILTONETWEB_CONTRACTS_PATH}/byteCode/`,
+    `${process.env.OUTCOME_CONTRACTS_PATH}/bytecode/`,
+    `${process.env.PILTONETWEB_CONTRACTS_PATH}/bytecode/`,
     { recursive: true }
   )
 
