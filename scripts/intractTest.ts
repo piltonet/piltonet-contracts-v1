@@ -1,17 +1,11 @@
 import { ethers } from "hardhat";
 
 async function main() {
-  const NETWORK = process.env.DEFAULT_NETWORK;
-  const deploymentsDir = `.${process.env.OUTCOME_CONTRACTS_PATH}/deployments/${NETWORK}`;
+  const contractAddress = "0xb09a43508b5e0a0AFdc7a2e182b649d48b577ADa";
 
-  const deployedContract = require(`${deploymentsDir}/TrustedContacts.json`);
-  
-  const Contract = await ethers.getContractAt("contracts/TrustedContacts.sol:TrustedContacts", deployedContract.address);
-  let serviceAdmin = await Contract.serviceAdmin();
-  console.log('Service Admin: ', serviceAdmin);
-  let profileAddress = await Contract.profileAddress();
-  console.log('Profile Address: ', profileAddress);
-
+  const Contract = await ethers.getContractAt("contracts/TLCC.sol:TLCC", contractAddress);
+  let circleName = await Contract.circleName();
+  console.log('Circle Name: ', circleName);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

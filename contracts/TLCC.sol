@@ -87,7 +87,7 @@ contract TLCC is ITLCC, RegisteredTBA {
     _circleStatus private circleStatus;
 
     // TLCC parameters
-    string private circleName;
+    string public circleName;
     uint256 internal contributionSize;
     uint256 internal loanAmount;
     uint8 private minMembers;
