@@ -37,7 +37,7 @@ async function main() {
   const outcomeByteCodeDir = `${process.env.OUTCOME_CONTRACTS_PATH}/bytecode`;
   const artifact = require('../artifacts/contracts/TLCC.sol/TLCC.json');
   const bytecode = artifact.bytecode;
-  fs.writeFileSync(`${outcomeByteCodeDir}/TLCC.json`, bytecode)
+  fs.writeFileSync(`${outcomeByteCodeDir}/TLCC.json`, JSON.stringify(bytecode))
 }
 
 // We recommend this pattern to be able to use async/await everywhere
