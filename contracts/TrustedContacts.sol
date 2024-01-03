@@ -40,7 +40,7 @@ contract TrustedContacts is ERC1155, ERC1155Supply, ServiceAdmin, RegisteredTBA 
     //////////////////////////////////////////////////////////////*/
 
     function addContact(address contactTBA) public
-        onlyTBAOwner()
+        onlyTBASender()
         onlyRegisteredTBA(contactTBA)
     {
         require(msg.sender != contactTBA, "Error: The account cannot be its own contact!");

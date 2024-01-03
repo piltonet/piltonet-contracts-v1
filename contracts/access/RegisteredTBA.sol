@@ -18,10 +18,18 @@ abstract contract RegisteredTBA is ServiceAdmin {
                             Modifiers
     //////////////////////////////////////////////////////////////*/
     
-    modifier onlyTBAOwner() {
+    modifier onlyTBASender() {
         require(
             getTBAProfile(msg.sender) == PILTONET_PROFILE_ADDRESS,
             "The sender is not a valid tokenbound-account."
+        );
+        _;
+    }
+    
+    modifier onlyTBAOwner(address account) {
+        require(
+            getTBAOwner(account) == msg.sender,
+            "The sender is not the tokenbound-account owner."
         );
         _;
     }
@@ -46,5 +54,9 @@ abstract contract RegisteredTBA is ServiceAdmin {
     function getTBAProfile(address account) internal view returns (address) {
         (, address profileAddr, ) = IERC6551Account(payable(account)).token();
         return profileAddr;
+    }
+
+    function getTBAOwner(address account) internal view returns (address) {
+        return IERC6551Account(payable(account)).owner();
     }
 }

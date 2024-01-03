@@ -6,6 +6,7 @@ interface ITLCC {
                             Events
     //////////////////////////////////////////////////////////////*/
 
+    event LogTLCCDeployed(address contractAddress);
     event LogContributionMade(
         address indexed user,
         uint256 amount,

@@ -46,13 +46,6 @@ contract TLCC is ITLCC, RegisteredTBA {
     /*///////////////////////////////////////////////////////////////
                             States
     //////////////////////////////////////////////////////////////*/
-    // TLCC parameters
-    uint256 internal roundPeriodInSecs;
-    uint16 internal serviceFeeInThousandths;
-    uint16 public currentRound = 1; // circle is started the moment it is created
-    uint128 internal contributionSize;
-    uint256 internal startTime;
-    
     
     address internal circleAdmin;
     address public paymentToken; // public - allow easy verification of token contract.
@@ -81,6 +74,35 @@ contract TLCC is ITLCC, RegisteredTBA {
 
     uint16 internal creatorEarnings; // Multiplied by Ten Thousand Times
     uint16 internal patienceBenefit; // Multiplied by Ten Thousand Times
+    // Circle Status
+    enum _circleStatus {
+        DEPLOYED,
+        SETUPED,
+        LAUNCHED,
+        STARTED,
+        PAUSED,
+        STOPED,
+        COMPLETED
+    }
+    _circleStatus private circleStatus;
+
+    // TLCC parameters
+    string private circleName;
+    uint256 internal contributionSize;
+    uint256 internal loanAmount;
+    uint8 private minMembers;
+    uint8 private maxMembers;
+    uint8 private winnersNumber;
+    uint8 private maxRounds = 0;
+    uint16 public currentRound = 1; // circle is started the moment it is created
+
+    //
+    uint16 internal serviceFeeInThousandths;
+    uint256 internal startTime;
+    uint256 internal roundPeriodInSecs;
+
+
+
 
 
     bool public endOfTLCC = false;
@@ -176,6 +198,13 @@ contract TLCC is ITLCC, RegisteredTBA {
     /*///////////////////////////////////////////////////////////////
                             Constructor
     //////////////////////////////////////////////////////////////*/
+    
+    /**
+    * @dev Deploy a new TLCC and initializing the contract states.
+    * States cannot be changed after deploy.
+    * The "circle_admin" must be a registered token bound account.
+    * Only the owner of "circle_admin" or Piltonet Service Admin can deploy a new TLCC
+    */
     constructor(
         address circle_admin, // token bound account
         address payment_token, // address(0) for VIC
@@ -187,6 +216,7 @@ contract TLCC is ITLCC, RegisteredTBA {
     ) 
         onlyRegisteredTBA(circle_admin)
 	{
+        require(msg.sender == getTBAOwner(circle_admin) || msg.sender == serviceAdmin(), "Error: only tba owner or service admin!");
         // require(
         //     roundPeriodInSecs_ != 0 &&
         //         startTime_ >= block.timestamp.sub(MAXIMUM_TIME_PAST_SINCE_TLCC_START_SECS) &&
@@ -203,6 +233,9 @@ contract TLCC is ITLCC, RegisteredTBA {
         winnersOrder = winners_order;
         creatorEarnings = creator_earnings_x10000;
         patienceBenefit = patience_benefit_x10000;
+
+        circleStatus = _circleStatus.DEPLOYED;
+
         
         // roundPeriodInSecs = roundPeriodInSecs_;
         // contributionSize = contributionSize_;
@@ -216,12 +249,46 @@ contract TLCC is ITLCC, RegisteredTBA {
 
         // require(members[msg.sender].alive);
 
-        emit LogStartOfRound(currentRound);
+        emit LogTLCCDeployed(address(this));
     }
 
     /*///////////////////////////////////////////////////////////////
                             Functions
     //////////////////////////////////////////////////////////////*/
+    
+    /**
+    * @dev Setup the necessary variables of TLCC.
+    * Only circle admin (tokenbound-account) can setup the circle
+    * Variables can only be initialized and updated before the circle is launched.
+    */
+    function setupCircle(
+        string memory circle_name,
+        uint256 fixed_amount_x100,
+        uint8 min_members,
+        uint8 max_members,
+        uint8 winners_number
+    ) public onlyAdmin {
+        require(
+            circleStatus == _circleStatus.DEPLOYED ||
+                circleStatus == _circleStatus.SETUPED,
+            "Error: The circle is launched."
+        );
+
+        circleName = circle_name;
+        contributionSize = paymentType == _paymentType.FIXED_PAY
+            ? (1 ether * fixed_amount_x100) / 10 ** 2
+            : 0 ether;
+        loanAmount = paymentType == _paymentType.FIXED_LOAN
+            ? (1 ether * fixed_amount_x100) / 10 ** 2
+            : 0 ether;
+        minMembers = min_members;
+        maxMembers = max_members;
+        winnersNumber = winners_number;
+
+        maxRounds = uint8(maxMembers.div(winnersNumber));
+        circleStatus = _circleStatus.SETUPED;
+    }
+
     function addMember(
         address newMember
     ) internal onlyNonZeroAddress(newMember) {
