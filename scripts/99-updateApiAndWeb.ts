@@ -12,6 +12,17 @@ async function main() {
     `${process.env.PILTONETWEB_CONTRACTS_PATH}/abi/`,
     { recursive: true }
   )
+  
+  fs.cpSync(
+    `${process.env.OUTCOME_CONTRACTS_PATH}/byteCode/`,
+    `${process.env.PILTONETAPI_CONTRACTS_PATH}/byteCode/`,
+    { recursive: true }
+  )
+  fs.cpSync(
+    `${process.env.OUTCOME_CONTRACTS_PATH}/byteCode/`,
+    `${process.env.PILTONETWEB_CONTRACTS_PATH}/byteCode/`,
+    { recursive: true }
+  )
 
   fs.cpSync(
     `${process.env.OUTCOME_CONTRACTS_PATH}/deployments/`,
