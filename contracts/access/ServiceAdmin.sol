@@ -19,7 +19,7 @@ abstract contract ServiceAdmin is Context, Constants {
     }
 
     /**
-     * @dev Returns the address of the current service admin.
+     * @dev Returns the address of the service admin.
      */
     function serviceAdmin() public view virtual returns (address) {
         return PILTONET_SERVICE_ADMIN;

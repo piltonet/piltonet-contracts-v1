@@ -15,7 +15,7 @@ async function main() {
   // TrustedContacts
   const TrustedContacts = await ethers.deployContract("contracts/TrustedContacts.sol:TrustedContacts", [
     "https://piltonet.com/profile/",
-    deployedERC721Profile.address
+    // deployedERC721Profile.address
   ], {
     gasLimit: 6000000
   });

@@ -7,6 +7,13 @@ import "../tba/interfaces/IERC6551Account.sol";
 
 abstract contract RegisteredTBA is ServiceAdmin {
 
+    /**
+     * @dev Returns the address of the service admin.
+     */
+    function profileAddress() public view virtual returns (address) {
+        return PILTONET_PROFILE_ADDRESS;
+    }
+
     /*///////////////////////////////////////////////////////////////
                             Modifiers
     //////////////////////////////////////////////////////////////*/
