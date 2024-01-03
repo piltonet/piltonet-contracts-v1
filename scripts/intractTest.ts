@@ -1,7 +1,7 @@
 import { ethers } from "hardhat";
 
 async function main() {
-  const contractAddress = "0xb09a43508b5e0a0AFdc7a2e182b649d48b577ADa";
+  const contractAddress = "0x90c54C27c68B679b5213EAb309115D697F1093a5";
 
   const Contract = await ethers.getContractAt("contracts/TLCC.sol:TLCC", contractAddress);
   let circleName = await Contract.circleName();
