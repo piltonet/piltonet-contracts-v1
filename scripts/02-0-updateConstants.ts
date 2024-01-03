@@ -10,7 +10,7 @@ async function main() {
   
   abstract contract Constants {
       // Piltonet Services Admin
-      address internal constant PILTONET_SERVICE_ADMIN = 0xa61c159Ac42a3861d799D31bfE075B6E9a57C9f6;
+      address internal constant PILTONET_SERVICE_ADMIN = ${process.env.SERVICE_ADMIN_PUBLIC_KEY};
       
       // ERC721Profile Implementation
       address internal constant PILTONET_PROFILE_ADDRESS = ${deployedERC721Profile.address};

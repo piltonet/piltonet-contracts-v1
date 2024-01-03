@@ -16,15 +16,15 @@ const config: HardhatUserConfig = {
   networks: {
     viction: {
       url: "https://rpc.viction.xyz",
-      accounts: [process.env.PRIVATE_KEY || ""]
+      accounts: [process.env.SERVICE_ADMIN_PRIVATE_KEY || ""]
     },
     victestnet: {
       url: "https://rpc-testnet.viction.xyz",
-      accounts: [process.env.PRIVATE_KEY || ""]
+      accounts: [process.env.SERVICE_ADMIN_PRIVATE_KEY || ""]
     },
     tomotestnet: {
       url: "https://rpc.testnet.tomochain.com",
-      accounts: [process.env.PRIVATE_KEY || ""]
+      accounts: [process.env.SERVICE_ADMIN_PRIVATE_KEY || ""]
     }
   },
   etherscan: {

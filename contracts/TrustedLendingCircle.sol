@@ -29,7 +29,7 @@ contract TrustedLendingCircle is Ownable(msg.sender) {
     uint internal constant CIRCLES_MAX_PAY_X100_TOKEN0 = 50000; // Maximum payment each round is 500 VIC
     uint internal constant CIRCLES_MIN_PAY_X100_TOKEN1 = 10000; // Minimum payment each round is 100 CUSD
     uint internal constant CIRCLES_MAX_PAY_X100_TOKEN1 = 50000; // Maximum payment each round is 500 CUSD
-    address internal constant CIRCLES_SERVICE_ADDRESS = 0xa61c159Ac42a3861d799D31bfE075B6E9a57C9f6; // Piltonet service pot address
+    address internal constant CIRCLES_SERVICE_ADDRESS = 0x2B27F8c647872BC0f5E4C7cA8e3aEAEe19A28f3A; // Piltonet service pot address
     uint16 internal constant CIRCLES_SERVICE_CHARGE_X10000 = 20; // The service charge is 0.2%
     uint16 internal constant CIRCLES_MAX_CREATOR_EARNINGS_X10000 = 500; // The maximum creator earnings is 5%
     uint16 internal constant CIRCLES_MAX_PATIENCE_BENEFIT_X10000 = 3600; // The maximum benefit of patience (per year) is 36%
