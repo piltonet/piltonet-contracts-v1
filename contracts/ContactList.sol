@@ -11,7 +11,7 @@ import "./utils/Utils.sol";
 /// @author @FAR0KH
 /// @notice This contract is used to store trust relationships between accounts registered in Profile contract
 /// @custom:security-contact security@piltonet.com
-contract TrustedContacts is ERC1155, ERC1155Supply, ServiceAdmin, RegisteredTBA {
+contract ContactList is ERC1155, ERC1155Supply, ServiceAdmin, RegisteredTBA {
     
     /// @dev store tba as main owner of its tokenId 
     mapping(uint256 => address) private _idOwner;
@@ -91,8 +91,19 @@ contract TrustedContacts is ERC1155, ERC1155Supply, ServiceAdmin, RegisteredTBA 
         emit ContactAdded(tokenId, profileTBA, contactTBA);
     }
 
-    function contactsOf(address account) public view returns (address[] memory) {
-        return _contactList[account];
+    function myContacts() public view
+        onlyTBASender()
+        returns (address[] memory)
+    {
+        return _contactList[msg.sender];
+    }
+    
+    function isMyContact(address account) public view
+        onlyTBASender()
+        returns (bool)
+    {
+        return (balanceOf(msg.sender, getTBATokenId(account)) > 0
+            && balanceOf(account, getTBATokenId(msg.sender)) > 0);
     }
 
     function setURI(string memory newuri) public onlyServiceAdmin {

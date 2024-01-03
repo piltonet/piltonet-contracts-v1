@@ -7,27 +7,27 @@ async function main() {
   const outcomeAbiDir = `${process.env.OUTCOME_CONTRACTS_PATH}/abi`;
   const deploymentsDir = `${process.env.OUTCOME_CONTRACTS_PATH}/deployments/${NETWORK}`;
 
+  const deployedERC721Profile = require(`.${deploymentsDir}/ERC721Profile.json`);
+
   const [deployer] = await ethers.getSigners();
   console.log("Deploying contracts with the account:", deployer.address);
 
-  // TrustedLendingCircle
-  const TrustedLendingCircle = await ethers.deployContract("contracts/TrustedLendingCircle.sol:TrustedLendingCircle", [
-    "0x0000000000000000000000000000000000000000", // payment_token
-    30, // round_days
-    0, // payment_type
-    0, // creator_earnings_x10000
+  // ContactList
+  const ContactList = await ethers.deployContract("contracts/ContactList.sol:ContactList", [
+    "https://piltonet.com/profile/",
+    // deployedERC721Profile.address
   ], {
     gasLimit: 6000000
   });
   const ContactsContract = {
     deployer: deployer.address,
-    address: await TrustedLendingCircle.getAddress()
+    address: await ContactList.getAddress()
   }
-  fs.writeFileSync(`${deploymentsDir}/TrustedLendingCircle.json`, JSON.stringify(ContactsContract))
-  console.log("TrustedLendingCircle deployed to:", ContactsContract.address);
+  fs.writeFileSync(`${deploymentsDir}/ContactList.json`, JSON.stringify(ContactsContract))
+  console.log("ContactList deployed to:", ContactsContract.address);
 
   // copy abi file to outcome/abi
-  fs.copyFileSync(`${abiDir}/TrustedLendingCircle.json`, `${outcomeAbiDir}/TrustedLendingCircle.json`);
+  fs.copyFileSync(`${abiDir}/ContactList.json`, `${outcomeAbiDir}/ContactList.json`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

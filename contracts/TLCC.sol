@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "vrc25/contracts/interfaces/IVRC25.sol";
 import "./access/RegisteredTBA.sol";
+import "./interfaces/IContactList.sol";
 import "./interfaces/ITLCC.sol";
 import "./utils/SafeMath.sol";
 
@@ -101,6 +102,31 @@ contract TLCC is ITLCC, RegisteredTBA {
     uint256 internal startTime;
     uint256 internal roundPeriodInSecs;
 
+    // The list of contacts who are whitelisted to join the circle
+    struct Whitelist {
+        bool alive; // needed to check If it has already been added to the whitelist
+        address listedBy; // The moderator's address who whitelist this person
+        bool joined; // true if the person has joined as a member
+    }
+    mapping(address => Whitelist) private whitelist;
+    address[] private whitelistAddresses; // for iterating through whitelist's addresses
+
+    struct Member {
+        bool alive; // needed to check if a member is indeed a member
+        uint256 credit; // amount of funds user has contributed - winnings (not including discounts) so far
+        bool debt; // true if user won the pot while not in good standing and is still not in good standing
+        bool paid; // yes if the member had won a Round
+        bool isModerator; // true if the member is a moderator of the circle
+        // uint8 selectedRound;
+        // uint totalPayments;
+        // uint loanAmount;
+        // bool debtor;
+    }
+    mapping(address => Member) private members;
+    // address[] private membersAccounts; // To Do
+    address[] private membersAddresses; // for iterating through members' addresses
+
+
 
 
 
@@ -118,15 +144,7 @@ contract TLCC is ITLCC, RegisteredTBA {
     uint256 public lowestBid = 0;
     address public winnerAddress = address(0); // bidder who bid the lowest so far
 
-    struct User {
-        uint256 credit; // amount of funds user has contributed - winnings (not including discounts) so far
-        bool debt; // true if user won the pot while not in good standing and is still not in good standing
-        bool paid; // yes if the member had won a Round
-        bool alive; // needed to check if a member is indeed a member
-    }
-
-    mapping(address => User) internal members;
-    address[] public membersAddresses; // for iterating through members' addresses
+    
 
     // Other state
     // An escape hatch is used in case a major vulnerability is discovered in the contract code.
@@ -162,6 +180,14 @@ contract TLCC is ITLCC, RegisteredTBA {
 
     modifier onlyAdmin() {
         require(msg.sender == circleAdmin);
+        _;
+    }
+
+    modifier onlyModerators() {
+        require(
+            msg.sender == circleAdmin ||
+                (members[msg.sender].alive && members[msg.sender].isModerator)
+        );
         _;
     }
 
@@ -289,16 +315,40 @@ contract TLCC is ITLCC, RegisteredTBA {
         circleStatus = _circleStatus.SETUPED;
     }
 
+    /**
+    * @dev A potential list of trusted contacts who are considered for membership in the circle.
+    * Only circle admin and moderators can add to whitelist.
+    * It can only be added to the whitelist after the circle is setuped and before it is launched.
+    */
+    function addToWhitelist(address[] memory _whitelist) public onlyModerators {
+        require(
+            circleStatus == _circleStatus.SETUPED,
+            "Error: The circle is not setuped or is started."
+        );
+
+        for (uint8 i = 0; i < _whitelist.length; i++) {
+            if (!whitelist[_whitelist[i]].alive) {
+                whitelist[_whitelist[i]] = Whitelist({
+                    alive: true,
+                    listedBy: msg.sender,
+                    joined: false
+                });
+                whitelistAddresses.push(_whitelist[i]);
+            }
+        }
+    }
+
     function addMember(
         address newMember
     ) internal onlyNonZeroAddress(newMember) {
         require(!members[newMember].alive, "already registered");
 
-        members[newMember] = User({
+        members[newMember] = Member({
             paid: false,
             credit: 0,
             alive: true,
-            debt: false
+            debt: false,
+            isModerator: false
         });
         membersAddresses.push(newMember);
     }
@@ -429,7 +479,7 @@ contract TLCC is ITLCC, RegisteredTBA {
         );
 
         for (uint16 j = 0; j < membersAddresses.length; j++) {
-            User memory member = members[membersAddresses[j]];
+            Member memory member = members[membersAddresses[j]];
             uint256 credit = userTotalCredit(membersAddresses[j]);
             uint256 debit = requiredContribution();
             if (member.debt) {
@@ -528,7 +578,7 @@ contract TLCC is ITLCC, RegisteredTBA {
         onlyIfCircleNotEnded
         onlyIfEscapeHatchInactive
     {
-        User storage member = members[msg.sender];
+        Member storage member = members[msg.sender];
         uint256 value = validateAndReturnContribution();
         member.credit = SafeMath.add(member.credit, value);
         if (member.debt) {
