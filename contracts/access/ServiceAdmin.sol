@@ -2,9 +2,9 @@
 pragma solidity ^0.8.20;
 
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
-import "./Constants.sol";
+import "../constants/CService.sol";
 
-abstract contract ServiceAdmin is Context, Constants {
+abstract contract ServiceAdmin is Context, CService {
     /**
      * @dev The caller account is not authorized to perform an operation.
      */

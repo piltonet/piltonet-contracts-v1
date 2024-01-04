@@ -9,7 +9,7 @@ async function main() {
   let newConstants = `// SPDX-License-Identifier: MIT
   pragma solidity ^0.8.20;
   
-  abstract contract Constants {
+  abstract contract CService {
       // Piltonet Services Admin
       address internal constant PILTONET_SERVICE_ADMIN = ${process.env.SERVICE_ADMIN_PUBLIC_KEY};
       
@@ -20,8 +20,8 @@ async function main() {
       address internal constant PILTONET_CONTACTLIST_ADDRESS = ${deployedContactList.address};
   }`;
 
-  fs.writeFileSync("./contracts/access/Constants.sol", newConstants);
-  console.log("Constants updated to:", newConstants);
+  fs.writeFileSync("./contracts/constants/CService.sol", newConstants);
+  console.log("Service constants updated to:", newConstants);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

@@ -7,6 +7,7 @@ import "./access/RegisteredTBA.sol";
 import "./access/TrustedContact.sol";
 import "./interfaces/IContactList.sol";
 import "./interfaces/ITLCC.sol";
+import "./constants/CTLCC.sol";
 import "./utils/SafeMath.sol";
 
 /// @title Trusted Lending Circle Contract - TLCC
@@ -21,30 +22,10 @@ The person who deploys the TLCC is known as the contract owner (termed "Admin").
 Admin specifies the main parameters of the circle while deploying the TLCC.
 Such as payment token, length of each period, etc.
 //////////////////////////////////////////////////////////////*/
-contract TLCC is ITLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
+contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
     using SafeMath for *;
 	
     uint16 public constant TLCC_VERSION = 2;
-
-    /*///////////////////////////////////////////////////////////////
-                            Constants
-    //////////////////////////////////////////////////////////////*/
-    // Maximum fee (in 1/1000s) from dispersements that is shared between other members
-    uint16 internal constant MAX_FEE_IN_X1000 = 20;
-
-    // Start time of the TLCC must be not more than this much time ago when the TLCC is created
-    // This is to prevent accidental or malicious deployment of TLCCs that are supposedly
-    // already in round number X > 1 and participants are supposedly delinquent.
-    uint32 internal constant MAXIMUM_TIME_PAST_SINCE_TLCC_START_SECS = 900; // 15 minutes
-
-    // the winning bid must be at least this much of the maximum (aka default) pot value
-    uint8 internal constant MIN_DISTRIBUTION_PERCENT = 65;
-
-    // Every new bid has to be at most this much of the previous lowest bid
-    uint8 internal constant MAX_NEXT_BID_RATIO = 98;
-
-    // Service account from which Escape Hatch can be enabled.
-    address internal constant ESCAPE_HATCH_ENABLER = 0x2B27F8c647872BC0f5E4C7cA8e3aEAEe19A28f3A;
 
     /*///////////////////////////////////////////////////////////////
                             States
@@ -90,7 +71,7 @@ contract TLCC is ITLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
     _circleStatus private circleStatus;
 
     // TLCC parameters
-    string public circleName;
+    string public circleName; // internal - public temp, for easy test
     uint256 internal contributionSize;
     uint256 internal loanAmount;
     uint8 private minMembers;
@@ -98,10 +79,12 @@ contract TLCC is ITLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
     uint8 private winnersNumber;
     uint8 private maxRounds = 0;
     uint16 public currentRound = 1; // circle is started the moment it is created
+    
+    uint256 public startDate; // internal - public temp, for easy test
+    uint256 internal startTime;
 
     //
     uint16 internal serviceFeeInThousandths;
-    uint256 internal startTime;
     uint256 internal roundPeriodInSecs;
 
     // The list of contacts who are whitelisted to join the circle
@@ -115,19 +98,20 @@ contract TLCC is ITLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
 
     struct Member {
         bool alive; // needed to check if a member is indeed a member
-        uint256 credit; // amount of funds user has contributed - winnings (not including discounts) so far
-        bool debt; // true if user won the pot while not in good standing and is still not in good standing
+        uint8 selectedRound; // in fixed type of tlcc
+        uint256 totalPayments; // the total amount paid by member
+        uint256 loanAmount; // the total amount borrowed by member
+        uint256 credit; // amount of funds member has contributed - winnings (not including discounts) so far
         bool paid; // yes if the member had won a Round
+        bool debtor; // true if member won the pot while not in good standing and is still not in good standing
         bool isModerator; // true if the member is a moderator of the circle
-        // uint8 selectedRound;
-        // uint totalPayments;
-        // uint loanAmount;
-        // bool debtor;
+        
     }
     mapping(address => Member) private members;
-    // address[] private membersAccounts; // To Do
+    // address[] private membersAddresses; // To Do
     address[] private membersAddresses; // for iterating through members' addresses
 
+    mapping(uint8 => address) private selectedRounds;
 
 
 
@@ -325,7 +309,12 @@ contract TLCC is ITLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
     */
     function addToWhitelist(address[] memory accounts) public 
         onlyModerators
-        onlyTrustedContacts(accounts)
+
+        /** 
+         * To Do
+         * @dev check all accounts are sender contact
+        */
+        // onlyTrustedContacts(accounts)
     {
         require(
             circleStatus == _circleStatus.SETUPED,
@@ -344,16 +333,45 @@ contract TLCC is ITLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
         }
     }
 
+    function launchCircle(uint256 start_date) public onlyAdmin {
+        require(
+            circleStatus == _circleStatus.SETUPED,
+            "Error: The circle status is not ready for launch."
+        );
+        require(
+            whitelistAddresses.length >= CIRCLES_MIN_MEMBERS,
+            "Error: The number of invited accounts before launch must be at least equal to the CIRCLES_MIN_MEMBERS."
+        );
+        require(
+            start_date > 10 ** 9 &&
+                start_date < 10 ** 10 && // Start date must be a 10-digit number
+                start_date.div(60 * 60 * 24) >
+                block.timestamp.div(60 * 60 * 24) && // and at least one day later
+                start_date.div(60 * 60 * 24).mul(60 * 60 * 24) -
+                    block.timestamp >
+                60 * 60 * 12, // and at least 12 hours later
+            "Error: The start date is out of range."
+        );
+
+        startDate = start_date.div(60 * 60 * 24).mul(60 * 60 * 24);
+        circleStatus = _circleStatus.LAUNCHED;
+        joinMember(winnersOrder == _winnersOrder.FIXED ? 1 : 0);
+    }
+
+
     function addMember(
         address newMember
     ) internal onlyNonZeroAddress(newMember) {
         require(!members[newMember].alive, "already registered");
 
         members[newMember] = Member({
-            paid: false,
-            credit: 0,
             alive: true,
-            debt: false,
+            selectedRound: 0,
+            totalPayments: 0,
+            loanAmount: 0,
+            credit: 0,
+            paid: false,
+            debtor: false,
             isModerator: false
         });
         membersAddresses.push(newMember);
@@ -390,7 +408,7 @@ contract TLCC is ITLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
 
     /**
      * @dev determine the winner based on the bid, or if no bids were place, find a random winner and credit the
-     * user with winnings
+     * member with winnings
      */
     function cleanUpPreviousRound() internal {
         // for pre-ordered TLCC, pick the next person in the list (delinquent or not)
@@ -465,8 +483,8 @@ contract TLCC is ITLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
                     !members[delinquentWinner].paid
             );
             winnerAddress = delinquentWinner;
-            // Set the flag to true so we know this user cannot withdraw until debt has been paid.
-            members[winnerAddress].debt = true;
+            // Set the flag to true so we know this member cannot withdraw until debt has been paid.
+            members[winnerAddress].debtor = true;
         }
         // Set lowestBid to the right value since there was no winning bid.
         lowestBid = potSize();
@@ -488,7 +506,7 @@ contract TLCC is ITLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
             Member memory member = members[membersAddresses[j]];
             uint256 credit = userTotalCredit(membersAddresses[j]);
             uint256 debit = requiredContribution();
-            if (member.debt) {
+            if (member.debtor) {
                 // As a delinquent member won, we'll reduce the funds subject to fees by the default pot they must have won (since
                 // they could not bid), to correctly calculate their delinquency.
                 debit = SafeMath.add(debit, removeFees(potSize()));
@@ -587,8 +605,8 @@ contract TLCC is ITLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
         Member storage member = members[msg.sender];
         uint256 value = validateAndReturnContribution();
         member.credit = SafeMath.add(member.credit, value);
-        if (member.debt) {
-            // Check if user comes out of debt. We know they won an entire pot as they could not bid,
+        if (member.debtor) {
+            // Check if member comes out of debt. We know they won an entire pot as they could not bid,
             // so we check whether their credit w/o that winning is non-delinquent.
             // check that credit must defaultPot (when debt is set to true, defaultPot was added to credit as winnings) +
             // currentRound in order to be out of debt
@@ -598,7 +616,7 @@ contract TLCC is ITLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
                     removeFees(potSize())
                 ) >= requiredContribution()
             ) {
-                member.debt = false;
+                member.debtor = false;
             }
         }
 
@@ -680,13 +698,13 @@ contract TLCC is ITLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
         returns (bool success)
     {
         require(
-            !members[msg.sender].debt || endOfTLCC,
+            !members[msg.sender].debtor || endOfTLCC,
             "delinquent winners need to first pay their debt"
         );
 
         uint256 totalCredit = userTotalCredit(msg.sender);
 
-        uint256 totalDebit = members[msg.sender].debt
+        uint256 totalDebit = members[msg.sender].debtor
             ? removeFees(potSize()) // this must be end of circle
             : requiredContribution();
         require(totalDebit < totalCredit, "nothing to withdraw");
@@ -716,17 +734,17 @@ contract TLCC is ITLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
     }
 
     /**
-     * @dev Returns how much a user can withdraw (positive return value),
+     * @dev Returns how much a member can withdraw (positive return value),
      * or how much they need to contribute to be in good standing (negative return value)
      * @return int256
      */
     function getParticipantBalance(
-        address user
+        address member
     ) public view onlyMember returns (int256) {
-        int256 totalCredit = int256(userTotalCredit(user));
+        int256 totalCredit = int256(userTotalCredit(member));
 
         // if circle have ended, we don't need to subtract as totalDebit should equal to default winnings
-        if (members[user].debt && !endOfTLCC) {
+        if (members[member].debtor && !endOfTLCC) {
             totalCredit -= int256(removeFees(potSize()));
         }
         int256 totalDebit = int256(requiredContribution());
@@ -866,7 +884,7 @@ contract TLCC is ITLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
     ////////////////////
 
     /**
-     * @dev calculates the user's discount amount from the total discount
+     * @dev calculates the member's discount amount from the total discount
      * @return uint256
      */
     function userTotalCredit(
@@ -878,7 +896,7 @@ contract TLCC is ITLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
     }
 
     /**
-     * @dev calculates the default amount user can win in a round
+     * @dev calculates the default amount member can win in a round
      * @return uint256
      */
     function potSize() internal view virtual returns (uint256) {
@@ -886,10 +904,47 @@ contract TLCC is ITLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
     }
 
     /**
-     * @dev calculates the require amount of contribution for user to be in good standing
+     * @dev calculates the require amount of contribution for member to be in good standing
      * @return uint256
      */
     function requiredContribution() internal view virtual returns (uint256) {
         return SafeMath.mul(contributionSize, currentRound);
     }
+
+    // Internal
+    // --------------------------------------------------------------------------------
+    function joinMember(uint8 selected_round) internal virtual {
+        require(
+            circleStatus == _circleStatus.LAUNCHED,
+            "Error: The circle status is not ready for join."
+        );
+        require(!members[msg.sender].alive, "Error: Already a member.");
+        require(
+            membersAddresses.length < maxMembers,
+            "Error: Membership capacity is full."
+        );
+
+        members[msg.sender] = Member({
+            alive: true,
+            selectedRound: selected_round,
+            totalPayments: 0,
+            loanAmount: 0,
+            credit: 0,
+            paid: false,
+            debtor: false,
+            isModerator: false
+        });
+        membersAddresses.push(msg.sender);
+
+        if (winnersOrder == _winnersOrder.FIXED)
+            selectedRounds[selected_round] = msg.sender;
+    }
+
+    function roundDueDate(uint8 round_index) internal virtual returns (uint256) {
+        return
+            startDate > 0 && round_index < maxRounds
+                ? startDate.add(roundDays.mul(round_index).mul(60 * 60 * 24))
+                : 0;
+    }
+
 }

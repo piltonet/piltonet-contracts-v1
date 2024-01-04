@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "./Constants.sol";
+import "../constants/CService.sol";
 import "../interfaces/IContactList.sol";
 
-abstract contract TrustedContact is Constants {
+abstract contract TrustedContact is CService {
 
     /**
      * @dev Returns the address of the ContactList contract.

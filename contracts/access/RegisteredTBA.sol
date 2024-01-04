@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "./Constants.sol";
+import "../constants/CService.sol";
 import "../tba/interfaces/IERC6551Account.sol";
 
-abstract contract RegisteredTBA is Constants {
+abstract contract RegisteredTBA is CService {
 
     /**
      * @dev Returns the address of the ERC721Profile contract.
