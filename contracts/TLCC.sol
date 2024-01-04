@@ -35,24 +35,19 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
     address public paymentToken; // public - allow easy verification of token contract.
 
     // Payment Type
-    // 0 : Loan amount will be based on the number of members and other rules. (FIXED_PAY)
-    // 1 : Contribution amount will be based on the number of members and other rules. (FIXED_LOAN)
     enum _paymentType {
-        FIXED_PAY,
-        FIXED_LOAN
+        FIXED_PAY, // 0 : Loan amount will be based on the number of members and other rules. (FIXED_PAY)
+        FIXED_LOAN // 1 : Contribution amount will be based on the number of members and other rules. (FIXED_LOAN)
     }
     _paymentType paymentType;
 
     uint16 internal roundDays;
 
     // Winners Order
-    // 0 : Winner(s) is/are chosen at random (RANDOM)
-    // 1 : Winner(s) is/are selected through a predetermined ordered list (FIXED)
-    // 2 : Lowest bidder wins (BIDDING)
     enum _winnersOrder {
-        RANDOM,
-        FIXED,
-        BIDDING
+        RANDOM, // 0 : Winner(s) is/are chosen at random (RANDOM)
+        FIXED, // 1 : Winner(s) is/are selected through a predetermined ordered list (FIXED)
+        BIDDING // 2 : Lowest bidder wins (BIDDING)
     }
     _winnersOrder winnersOrder;
 
@@ -68,10 +63,10 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
         STOPED,
         COMPLETED
     }
-    _circleStatus private circleStatus;
+    _circleStatus public circleStatus; // To Do internal - public temp, for easy test
 
     // TLCC parameters
-    string public circleName; // internal - public temp, for easy test
+    string public circleName; // To Do internal - public temp, for easy test
     uint256 internal contributionSize;
     uint256 internal loanAmount;
     uint8 private minMembers;
@@ -80,7 +75,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
     uint8 private maxRounds = 0;
     uint16 public currentRound = 1; // circle is started the moment it is created
     
-    uint256 public startDate; // internal - public temp, for easy test
+    uint256 public startDate; // To Do internal - public temp, for easy test
     uint256 internal startTime;
 
     //
@@ -108,7 +103,6 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
         
     }
     mapping(address => Member) private members;
-    // address[] private membersAddresses; // To Do
     address[] private membersAddresses; // for iterating through members' addresses
 
     mapping(uint8 => address) private selectedRounds;
@@ -299,6 +293,14 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
 
         maxRounds = uint8(maxMembers.div(winnersNumber));
         circleStatus = _circleStatus.SETUPED;
+        
+        // add circle admin to whitelistAddresses as default
+        whitelist[msg.sender] = Whitelist({
+            alive: true,
+            listedBy: msg.sender,
+            joined: false
+        });
+        whitelistAddresses.push(msg.sender);
     }
 
     /**
