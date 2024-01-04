@@ -516,7 +516,7 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "user",
+        "name": "member",
         "type": "address"
       }
     ],
@@ -529,6 +529,19 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "start_date",
+        "type": "uint256"
+      }
+    ],
+    "name": "launchCircle",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -614,6 +627,19 @@
     "name": "setupCircle",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "startDate",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
