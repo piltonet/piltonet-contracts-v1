@@ -5,7 +5,6 @@ import "vrc25/contracts/interfaces/IVRC25.sol";
 import "./access/ServiceAdmin.sol";
 import "./access/RegisteredTBA.sol";
 import "./access/TrustedContact.sol";
-import "./interfaces/IContactList.sol";
 import "./interfaces/ITLCC.sol";
 import "./constants/CTLCC.sol";
 import "./utils/SafeMath.sol";
@@ -30,7 +29,10 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
     /*///////////////////////////////////////////////////////////////
                             States
     //////////////////////////////////////////////////////////////*/
-    
+    // To Do for test
+    uint256 public balance_ = 13; 
+    address public sender_;
+
     address internal circleAdmin;
     address public paymentToken; // public - allow easy verification of token contract.
 
@@ -67,12 +69,14 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
 
     // TLCC parameters
     string public circleName; // To Do internal - public temp, for easy test
-    uint256 internal contributionSize;
-    uint256 internal loanAmount;
+    uint256 public contributionSize; // To Do internal - public temp, for easy test
+    uint256 public loanAmount; // To Do internal - public temp, for easy test
     uint8 private minMembers;
     uint8 private maxMembers;
     uint8 private winnersNumber;
     uint8 private maxRounds = 0;
+
+    // To Do currentRound
     uint16 public currentRound = 1; // circle is started the moment it is created
     
     uint256 public startDate; // To Do internal - public temp, for easy test
@@ -102,7 +106,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
         bool isModerator; // true if the member is a moderator of the circle
         
     }
-    mapping(address => Member) private members;
+    mapping(address => Member) public members; // To Do private - public temp, for easy test
     address[] private membersAddresses; // for iterating through members' addresses
 
     mapping(uint8 => address) private selectedRounds;
@@ -153,6 +157,11 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
         _;
     }
 
+    modifier onlyWhitelist() {
+        require(whitelist[msg.sender].alive);
+        _;
+    }
+    
     modifier onlyMember() {
         require(members[msg.sender].alive);
         _;
@@ -281,16 +290,19 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
         );
 
         circleName = circle_name;
-        contributionSize = paymentType == _paymentType.FIXED_PAY
-            ? (1 ether * fixed_amount_x100) / 10 ** 2
-            : 0 ether;
-        loanAmount = paymentType == _paymentType.FIXED_LOAN
-            ? (1 ether * fixed_amount_x100) / 10 ** 2
-            : 0 ether;
         minMembers = min_members;
         maxMembers = max_members;
         winnersNumber = winners_number;
-
+        
+        // To Do decimal size
+        uint256 _fixedAmount = paymentToken == address(0) ? (1 ether * fixed_amount_x100) / 100 : (10**6 * fixed_amount_x100) / 100;
+        contributionSize = paymentType == _paymentType.FIXED_PAY
+            ? _fixedAmount
+            : SafeMath.div(_fixedAmount, min_members);
+        loanAmount = paymentType == _paymentType.FIXED_LOAN
+            ? _fixedAmount
+            : SafeMath.mul(_fixedAmount, min_members);
+        
         maxRounds = uint8(maxMembers.div(winnersNumber));
         circleStatus = _circleStatus.SETUPED;
         
@@ -357,7 +369,52 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
 
         startDate = start_date.div(60 * 60 * 24).mul(60 * 60 * 24);
         circleStatus = _circleStatus.LAUNCHED;
-        joinMember(winnersOrder == _winnersOrder.FIXED ? 1 : 0);
+    }
+
+    function joinCircle(uint8 selected_round) public payable
+        // onlyWhitelist
+        // onlyIfCircleNotEnded
+        // onlyIfEscapeHatchInactive
+    {
+        require(
+            circleStatus == _circleStatus.LAUNCHED,
+            "Error: The circle status is not ready for join."
+        );
+        require(whitelist[msg.sender].alive, "Error: Only whitelist.");
+        require(!members[msg.sender].alive, "Error: Already a member.");
+        require(membersAddresses.length < maxMembers, "Error: Membership capacity is full.");
+
+        // uint256 _balance = validateAndReturnContribution();
+        
+        sender_ = msg.sender;
+        uint256 _balance = paymentToken == address(0) ? msg.value : IVRC25(paymentToken).balanceOf(msg.sender);
+        balance_ = _balance;
+        require(_balance >= contributionSize, "Error: Not enough fund.");
+        // IVRC25(paymentToken).approve(address(this), contributionSize);
+        if (paymentToken != address(0)) {
+            require(msg.value == 0, "Error: Circle can not accept VIC.");
+            IVRC25(paymentToken).transferFrom(
+                msg.sender,
+                address(this),
+                contributionSize
+            );
+        }
+
+        uint256 _totalPayments = members[sender_].totalPayments;
+        members[msg.sender] = Member({
+            alive: true,
+            selectedRound: selected_round,
+            totalPayments: SafeMath.add(_totalPayments, _balance),
+            loanAmount: 0,
+            credit: 0,
+            paid: false,
+            debtor: false,
+            isModerator: false
+        });
+        membersAddresses.push(msg.sender);
+
+        if (winnersOrder == _winnersOrder.FIXED)
+            selectedRounds[selected_round] = msg.sender;
     }
 
 
@@ -572,7 +629,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
         bool isPaymentByVIC = (paymentToken == address(0));
         require(
             isPaymentByVIC || msg.value <= 0,
-            "token TLCCs should not accept VIC"
+            "Error: TLCC can not accept VIC."
         );
 
         uint256 value = (
@@ -581,13 +638,16 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
                 : IVRC25(paymentToken).allowance(msg.sender, address(this))
         );
         require(value != 0);
+        require(value >= contributionSize, "Error: Not enough fund.");
 
         if (isPaymentByVIC) {
             return value;
         }
-        require(
-            IVRC25(paymentToken).transferFrom(msg.sender, address(this), value)
-        );
+
+        // bool vrc25Transfer = IVRC25(paymentToken).transferFrom(msg.sender, address(this), value);
+        bool vrc25Transfer = IVRC25(paymentToken).transfer(address(this), value);
+        // require(vrc25Transfer, "Error: VRC25 transfer failed.");
+        require(vrc25Transfer);
         return value;
     }
 
@@ -915,32 +975,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
 
     // Internal
     // --------------------------------------------------------------------------------
-    function joinMember(uint8 selected_round) internal virtual {
-        require(
-            circleStatus == _circleStatus.LAUNCHED,
-            "Error: The circle status is not ready for join."
-        );
-        require(!members[msg.sender].alive, "Error: Already a member.");
-        require(
-            membersAddresses.length < maxMembers,
-            "Error: Membership capacity is full."
-        );
-
-        members[msg.sender] = Member({
-            alive: true,
-            selectedRound: selected_round,
-            totalPayments: 0,
-            loanAmount: 0,
-            credit: 0,
-            paid: false,
-            debtor: false,
-            isModerator: false
-        });
-        membersAddresses.push(msg.sender);
-
-        if (winnersOrder == _winnersOrder.FIXED)
-            selectedRounds[selected_round] = msg.sender;
-    }
+    
 
     function roundDueDate(uint8 round_index) internal virtual returns (uint256) {
         return
