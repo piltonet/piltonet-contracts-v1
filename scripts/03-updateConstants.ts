@@ -14,6 +14,9 @@ async function main() {
       
       // ERC721Profile Implementation
       address internal constant PILTONET_PROFILE_ADDRESS = ${deployedERC721Profile.address};
+      
+      // ContactList Implementation
+      address internal constant PILTONET_CONTACTLIST_ADDRESS = address(0);
   }`;
 
   fs.writeFileSync("./contracts/constants/CService.sol", newConstants);
