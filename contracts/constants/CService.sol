@@ -9,5 +9,5 @@
       address internal constant PILTONET_PROFILE_ADDRESS = 0xB900bA7d7E6dd74F90c549256990D9DdDa2cAb97;
       
       // ContactList Implementation
-      address internal constant PILTONET_CONTACTLIST_ADDRESS = 0x6c390f092678D208fc214B5B4859d5bFfC5D89e6;
+      address internal constant PILTONET_CONTACTLIST_ADDRESS = 0x96265683c22ECbc0115EA8aC2C7953D2583e3E6b;
   }

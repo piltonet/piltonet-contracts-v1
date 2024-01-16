@@ -51,21 +51,23 @@ contract ContactList is ERC1155, ERC1155Supply, ServiceAdmin, RegisteredTBA {
         /// @dev store tba as main owner of its tokenId 
         _idOwner[tokenId] = msg.sender;
 
-        require(balanceOf(contactTBA, tokenId) == 0, "Error: Contact has already been added!");
+        /// @dev mint token if contact has not been added yet
+        if(balanceOf(contactTBA, tokenId) == 0) {
+            _mint(contactTBA, tokenId, 1, "");
         
-        _mint(contactTBA, tokenId, 1, "");
-        
-        /// @dev store in contact list if both have the other token 
-        if(balanceOf(msg.sender, getTBATokenId(contactTBA)) > 0) {
-            _contactList[msg.sender].push(contactTBA);
-            _contactList[contactTBA].push(msg.sender);
-        }
+            /// @dev store in contact list if both have the other token 
+            if(balanceOf(msg.sender, getTBATokenId(contactTBA)) > 0) {
+                _contactList[msg.sender].push(contactTBA);
+                _contactList[contactTBA].push(msg.sender);
+            }
 
-        emit ContactAdded(tokenId, msg.sender, contactTBA);
+            emit ContactAdded(tokenId, msg.sender, contactTBA);
+        }
+        
     }
 
     /// @dev temporarily due to json-rpc error
-    function addContactByOwner(address profileTBA, address contactTBA) public
+    function addContactByService(address profileTBA, address contactTBA) public
         onlyServiceAdmin()
         onlyRegisteredTBA(profileTBA)
         onlyRegisteredTBA(contactTBA)
