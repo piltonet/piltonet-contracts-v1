@@ -29,10 +29,6 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
     /*///////////////////////////////////////////////////////////////
                             States
     //////////////////////////////////////////////////////////////*/
-    // To Do for test
-    uint256 public balance_ = 13; 
-    address public sender_;
-
     address internal circleAdmin;
     address public paymentToken; // public - allow easy verification of token contract.
 
@@ -251,7 +247,6 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
 
         circleStatus = _circleStatus.DEPLOYED;
 
-        
         // roundPeriodInSecs = roundPeriodInSecs_;
         // contributionSize = contributionSize_;
         // startTime = startTime_;
@@ -294,8 +289,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
         maxMembers = max_members;
         winnersNumber = winners_number;
         
-        // To Do decimal size
-        uint256 _fixedAmount = paymentToken == address(0) ? (1 ether * fixed_amount_x100) / 100 : (10**6 * fixed_amount_x100) / 100;
+        uint256 _fixedAmount = paymentToken == address(0) ? (fixed_amount_x100 * 1 ether) / 100 : (fixed_amount_x100 * IVRC25(paymentToken).decimals()) / 100;
         contributionSize = paymentType == _paymentType.FIXED_PAY
             ? _fixedAmount
             : SafeMath.div(_fixedAmount, min_members);
@@ -386,9 +380,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
 
         // uint256 _balance = validateAndReturnContribution();
         
-        sender_ = msg.sender;
         uint256 _balance = paymentToken == address(0) ? msg.value : IVRC25(paymentToken).balanceOf(msg.sender);
-        balance_ = _balance;
         require(_balance >= contributionSize, "Error: Not enough fund.");
         // IVRC25(paymentToken).approve(address(this), contributionSize);
         if (paymentToken != address(0)) {
@@ -400,7 +392,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
             );
         }
 
-        uint256 _totalPayments = members[sender_].totalPayments;
+        uint256 _totalPayments = members[msg.sender].totalPayments;
         members[msg.sender] = Member({
             alive: true,
             selectedRound: selected_round,
