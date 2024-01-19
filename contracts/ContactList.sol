@@ -43,27 +43,7 @@ contract ContactList is ERC1155, ERC1155Supply, ServiceAdmin, RegisteredTBA {
         onlyTBASender()
         onlyRegisteredTBA(contactTBA)
     {
-        require(msg.sender != contactTBA, "Error: The account cannot be its own contact!");
-
-        /// @dev get tokenbound-account tokenId from ERC6551Account
-        uint256 tokenId = getTBATokenId(msg.sender);
-
-        /// @dev store tba as main owner of its tokenId 
-        _idOwner[tokenId] = msg.sender;
-
-        /// @dev mint token if contact has not been added yet
-        if(balanceOf(contactTBA, tokenId) == 0) {
-            _mint(contactTBA, tokenId, 1, "");
-        
-            /// @dev store in contact list if both have the other token 
-            if(balanceOf(msg.sender, getTBATokenId(contactTBA)) > 0) {
-                _contactList[msg.sender].push(contactTBA);
-                _contactList[contactTBA].push(msg.sender);
-            }
-
-            emit ContactAdded(tokenId, msg.sender, contactTBA);
-        }
-        
+        mintContactToken(msg.sender, contactTBA);
     }
 
     /// @dev temporarily due to json-rpc error
@@ -72,25 +52,30 @@ contract ContactList is ERC1155, ERC1155Supply, ServiceAdmin, RegisteredTBA {
         onlyRegisteredTBA(profileTBA)
         onlyRegisteredTBA(contactTBA)
     {
+        mintContactToken(profileTBA, contactTBA);
+    }
+
+    function mintContactToken(address profileTBA, address contactTBA) internal {
         require(profileTBA != contactTBA, "Error: The account cannot be its own contact!");
 
-        /// @dev get tokenbound-account tokenId from ERC6551Account
+        /// @dev get the tokenId of the profile tokenbound-account from ERC6551Account
         uint256 tokenId = getTBATokenId(profileTBA);
 
-        /// @dev store tba as main owner of its tokenId 
+        /// @dev store the profile tokenbound-account as the main owner of its tokenId 
         _idOwner[tokenId] = profileTBA;
 
-        require(balanceOf(contactTBA, tokenId) == 0, "Error: Contact has already been added!");
+        /// @dev mint token if contact has not been added yet
+        if(balanceOf(contactTBA, tokenId) == 0) {
+            _mint(contactTBA, tokenId, 1, "");
         
-        _mint(contactTBA, tokenId, 1, "");
-        
-        /// @dev store in contact list if both have the other token 
-        if(balanceOf(profileTBA, getTBATokenId(contactTBA)) > 0) {
-            _contactList[profileTBA].push(contactTBA);
-            _contactList[contactTBA].push(profileTBA);
-        }
+            /// @dev store in contact list if both have the other token 
+            if(balanceOf(profileTBA, getTBATokenId(contactTBA)) > 0) {
+                _contactList[profileTBA].push(contactTBA);
+                _contactList[contactTBA].push(profileTBA);
+            }
 
-        emit ContactAdded(tokenId, profileTBA, contactTBA);
+            emit ContactAdded(tokenId, profileTBA, contactTBA);
+        }
     }
 
     function myContacts() public view
