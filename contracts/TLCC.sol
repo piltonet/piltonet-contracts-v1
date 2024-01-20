@@ -5,6 +5,7 @@ import "vrc25/contracts/interfaces/IVRC25.sol";
 import "./access/ServiceAdmin.sol";
 import "./access/RegisteredTBA.sol";
 import "./access/TrustedContact.sol";
+import "./access/AcceptedTokens.sol";
 import "./interfaces/ITLCC.sol";
 import "./constants/CTLCC.sol";
 import "./utils/SafeMath.sol";
@@ -21,7 +22,7 @@ The person who deploys the TLCC is known as the contract owner (termed "Admin").
 Admin specifies the main parameters of the circle while deploying the TLCC.
 Such as payment token, length of each period, etc.
 //////////////////////////////////////////////////////////////*/
-contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
+contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, AcceptedTokens {
     using SafeMath for *;
 	
     /*///////////////////////////////////////////////////////////////
@@ -31,26 +32,27 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
     address public paymentToken; // public - allow easy verification of token contract.
 
     // Payment Type
-    enum _paymentType {
+    enum PaymentType {
         FIXED_PAY, // 0 : Loan amount will be based on the number of members and other rules. (FIXED_PAY)
         FIXED_LOAN // 1 : Contribution amount will be based on the number of members and other rules. (FIXED_LOAN)
     }
-    _paymentType paymentType;
+    PaymentType paymentType;
 
     uint16 internal roundDays;
 
     // Winners Order
-    enum _winnersOrder {
+    enum WinnersOrder {
         RANDOM, // 0 : Winner(s) is/are chosen at random (RANDOM)
         FIXED, // 1 : Winner(s) is/are selected through a predetermined ordered list (FIXED)
         BIDDING // 2 : Lowest bidder wins (BIDDING)
     }
-    _winnersOrder winnersOrder;
+    WinnersOrder winnersOrder;
 
     uint16 internal creatorEarnings; // Multiplied by Ten Thousand Times
     uint16 internal patienceBenefit; // Multiplied by Ten Thousand Times
+
     // Circle Status
-    enum _circleStatus {
+    enum CircleStatus {
         DEPLOYED,
         SETUPED,
         LAUNCHED,
@@ -59,7 +61,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
         STOPED,
         COMPLETED
     }
-    _circleStatus public circleStatus; // To Do internal - public temp, for easy test
+    CircleStatus public circleStatus; // To Do internal - public temp, for easy test
 
     // TLCC parameters
     string public circleName; // To Do internal - public temp, for easy test
@@ -161,12 +163,12 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
         _;
     }
 
-    modifier onlyAdmin() {
+    modifier onlyCircleAdmin() {
         require(msg.sender == circleAdmin);
         _;
     }
 
-    modifier onlyModerators() {
+    modifier onlyCircleModerators() {
         require(
             msg.sender == circleAdmin ||
                 (members[msg.sender].alive && members[msg.sender].isModerator)
@@ -195,7 +197,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
     }
 
     modifier onlyBIDDING_TLCC() {
-        require(winnersOrder == _winnersOrder.BIDDING);
+        require(winnersOrder == WinnersOrder.BIDDING);
         _;
     }
 
@@ -217,14 +219,25 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
     constructor(
         address circle_admin, // token bound account
         address payment_token, // address(0) for VIC
-        _paymentType payment_type,
+        PaymentType payment_type,
         uint16 round_days,
-        _winnersOrder winners_order,
+        WinnersOrder winners_order,
         uint16 patience_benefit_x10000,
         uint16 creator_earnings_x10000
     ) 
+        onlyAcceptedTokens(payment_token)
 	{
         require(msg.sender == serviceAdmin() || msg.sender == getTBAOwner(circle_admin), "Error: only tba owner or service admin!");
+        
+        require(
+            patience_benefit_x10000 <= CIRCLES_MAX_PATIENCE_BENEFIT_X10000,
+            "Error: The patience benefit is out of range."
+        );
+        require(
+            creator_earnings_x10000 <= CIRCLES_MAX_CREATOR_EARNINGS_X10000,
+            "Error: The creator earnings is out of range."
+        );
+        
         // require(
         //     roundPeriodInSecs_ != 0 &&
         //         startTime_ >= block.timestamp.sub(MAXIMUM_TIME_PAST_SINCE_TLCC_START_SECS) &&
@@ -242,7 +255,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
         creatorEarnings = creator_earnings_x10000;
         patienceBenefit = patience_benefit_x10000;
 
-        circleStatus = _circleStatus.DEPLOYED;
+        circleStatus = CircleStatus.DEPLOYED;
 
         // roundPeriodInSecs = roundPeriodInSecs_;
         // contributionSize = contributionSize_;
@@ -264,7 +277,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
     //////////////////////////////////////////////////////////////*/
     
     /**
-    * @dev Setup the necessary variables of TLCC.
+    * @dev Setup/Update the necessary variables of TLCC.
     * Only circle admin (tokenbound-account) can setup the circle
     * Variables can only be initialized and updated before the circle is launched.
     */
@@ -274,28 +287,47 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
         uint8 min_members,
         uint8 max_members,
         uint8 winners_number
-    ) public onlyAdmin {
+    ) public onlyCircleAdmin {
+        // check circle status before setup or update
         require(
-            circleStatus == _circleStatus.DEPLOYED ||
-                circleStatus == _circleStatus.SETUPED,
+            circleStatus == CircleStatus.DEPLOYED ||
+            circleStatus == CircleStatus.SETUPED,
             "Error: The circle is launched."
         );
+        
+        // check round payment amount
+        uint256 _fixedAmount = paymentToken == address(0) ? (fixed_amount_x100 * 1 ether) / 100 : (fixed_amount_x100 * IVRC25(paymentToken).decimals()) / 100;
+        uint256 _roundPayment = paymentType == PaymentType.FIXED_PAY
+            ? _fixedAmount
+            : SafeMath.div(_fixedAmount, min_members);
+        (uint256 minRoundPay, uint256 maxRoundPay) = getRoundPayment(paymentToken);
+        require(
+            _roundPayment >= minRoundPay &&
+            _roundPayment <= maxRoundPay,
+            "Error: The round payment is out of range."
+        );
 
+        // check member counts & winners number
+        require(
+            min_members >= CIRCLES_MIN_MEMBERS &&
+            min_members <= max_members &&
+            max_members <= CIRCLES_MAX_MEMBERS,
+            "Error: The number of members is out of range."
+        );
+        require(
+            SafeMath.div(min_members, winners_number) >= CIRCLES_MIN_MEMBERS,
+            "Error: The number of winners is too big."
+        );
+
+        // update variables
         circleName = circle_name;
+        contributionSize = _roundPayment;
+        loanAmount = SafeMath.mul(_roundPayment, min_members);
         minMembers = min_members;
         maxMembers = max_members;
         winnersNumber = winners_number;
-        
-        uint256 _fixedAmount = paymentToken == address(0) ? (fixed_amount_x100 * 1 ether) / 100 : (fixed_amount_x100 * IVRC25(paymentToken).decimals()) / 100;
-        contributionSize = paymentType == _paymentType.FIXED_PAY
-            ? _fixedAmount
-            : SafeMath.div(_fixedAmount, min_members);
-        loanAmount = paymentType == _paymentType.FIXED_LOAN
-            ? _fixedAmount
-            : SafeMath.mul(_fixedAmount, min_members);
-        
         maxRounds = uint8(maxMembers.div(winnersNumber));
-        circleStatus = _circleStatus.SETUPED;
+        circleStatus = CircleStatus.SETUPED;
         
         // add circle admin to whitelistAddresses as default
         whitelist[msg.sender] = Whitelist({
@@ -313,7 +345,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
     * It can only be added to the whitelist after the circle is setuped and before it is launched.
     */
     function addToWhitelist(address[] memory accounts) public 
-        onlyModerators
+        onlyCircleModerators
 
         /** 
          * To Do
@@ -322,7 +354,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
         // onlyTrustedContacts(accounts)
     {
         require(
-            circleStatus == _circleStatus.SETUPED,
+            circleStatus == CircleStatus.SETUPED,
             "Error: The circle is not setuped or is started."
         );
 
@@ -338,9 +370,9 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
         }
     }
 
-    function launchCircle(uint256 start_date) public onlyAdmin {
+    function launchCircle(uint256 start_date) public onlyCircleAdmin {
         require(
-            circleStatus == _circleStatus.SETUPED,
+            circleStatus == CircleStatus.SETUPED,
             "Error: The circle status is not ready for launch."
         );
         require(
@@ -359,7 +391,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
         );
 
         startDate = start_date.div(60 * 60 * 24).mul(60 * 60 * 24);
-        circleStatus = _circleStatus.LAUNCHED;
+        circleStatus = CircleStatus.LAUNCHED;
     }
 
     function joinCircle(uint8 selected_round) public payable
@@ -368,7 +400,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
         // onlyIfEscapeHatchInactive
     {
         require(
-            circleStatus == _circleStatus.LAUNCHED,
+            circleStatus == CircleStatus.LAUNCHED,
             "Error: The circle status is not ready for join."
         );
         require(whitelist[msg.sender].alive, "Error: Only whitelist.");
@@ -402,10 +434,9 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
         });
         membersAddresses.push(msg.sender);
 
-        if (winnersOrder == _winnersOrder.FIXED)
+        if (winnersOrder == WinnersOrder.FIXED)
             selectedRounds[selected_round] = msg.sender;
     }
-
 
     function addMember(
         address newMember
@@ -460,7 +491,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
      */
     function cleanUpPreviousRound() internal {
         // for pre-ordered TLCC, pick the next person in the list (delinquent or not)
-        if (winnersOrder == _winnersOrder.FIXED) {
+        if (winnersOrder == WinnersOrder.FIXED) {
             winnerAddress = membersAddresses[currentRound - 1];
         } else {
             // We keep the unpaid participants at positions [0..num_participants - current_round) so that we can uniformly select
@@ -835,7 +866,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
      */
     function endOfTLCCRetrieveSurplus()
         external
-        onlyAdmin
+        onlyCircleAdmin
         onlyIfCircleEnded
     {
         uint256 roscaCollectionTime = SafeMath.add(
@@ -868,7 +899,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
      */
     function endOfTLCCRetrieveFees()
         external
-        onlyAdmin
+        onlyCircleAdmin
         onlyIfCircleEnded
     {
         uint256 tempTotalFees = totalFees; // prevent re-entry.
@@ -897,7 +928,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
      * contributions and withdrawals, and allow the admin to retrieve all funds into their own account,
      * to be dispersed offline to the other participants.
      */
-    function activateEscapeHatch() external onlyAdmin {
+    function activateEscapeHatch() external onlyCircleAdmin {
         require(escapeHatchEnabled);
 
         escapeHatchActive = true;
@@ -910,7 +941,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
      */
     function emergencyWithdrawal()
         external
-        onlyAdmin
+        onlyCircleAdmin
         onlyIfEscapeHatchActive
     {
         emit LogEmergencyWithdrawalPerformed(getBalance(), currentRound);
@@ -964,13 +995,23 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
 
     // Internal
     // --------------------------------------------------------------------------------
-    
-
     function roundDueDate(uint8 round_index) internal virtual returns (uint256) {
         return
             startDate > 0 && round_index < maxRounds
                 ? startDate.add(roundDays.mul(round_index).mul(60 * 60 * 24))
                 : 0;
+    }
+
+    // public
+    function getTLCCConstants() public view returns (string memory) {
+        (uint256 minRoundPay, uint256 maxRoundPay) = getRoundPayment(paymentToken);
+        return string(abi.encodePacked(
+            '{ "TLCC_VERSION": ', Strings.toString(TLCC_VERSION),
+            ', "CIRCLES_MIN_ROUND_PAY": ', Strings.toString(minRoundPay),
+            ', "CIRCLES_MAX_ROUND_PAY": ', Strings.toString(maxRoundPay),
+            ', "CIRCLES_MIN_MEMBERS": ', Strings.toString(CIRCLES_MIN_MEMBERS),
+            ', "CIRCLES_MAX_MEMBERS": ', Strings.toString(CIRCLES_MAX_MEMBERS), ' }'
+        ));
     }
 
 }

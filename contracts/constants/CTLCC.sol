@@ -28,26 +28,8 @@ abstract contract CTLCC {
 
     uint8 internal constant CIRCLES_MIN_MEMBERS = 3; // Minimum number of members is 3 accounts
     uint8 internal constant CIRCLES_MAX_MEMBERS = 15; // Maximum number of members is 15 accounts
-    address internal constant CIRCLES_PAYMENT_TOKEN0 = address(0); // VIC token (0x0000000000000000000000000000000000000000)
-    address internal constant CIRCLES_PAYMENT_TOKEN1 =
-        0x093cD3E7806f6EadC76F9578fBF8BaCdf3aC7C3e; // CUSD contract address
-    uint256 internal constant CIRCLES_MIN_PAY_X100_TOKEN0 = 10000; // Minimum payment each round is 100 VIC
-    uint256 internal constant CIRCLES_MAX_PAY_X100_TOKEN0 = 50000; // Maximum payment each round is 500 VIC
-    uint256 internal constant CIRCLES_MIN_PAY_X100_TOKEN1 = 10000; // Minimum payment each round is 100 CUSD
-    uint256 internal constant CIRCLES_MAX_PAY_X100_TOKEN1 = 50000; // Maximum payment each round is 500 CUSD
-    address internal constant CIRCLES_SERVICE_ADDRESS =
-        0x2B27F8c647872BC0f5E4C7cA8e3aEAEe19A28f3A; // Piltonet service pot address
+    
     uint16 internal constant CIRCLES_SERVICE_CHARGE_X10000 = 20; // The service charge is 0.2%
     uint16 internal constant CIRCLES_MAX_CREATOR_EARNINGS_X10000 = 500; // The maximum creator earnings is 5%
     uint16 internal constant CIRCLES_MAX_PATIENCE_BENEFIT_X10000 = 3600; // The maximum benefit of patience (per year) is 36%
-
-    // public
-    function getTLCCConstants() public pure returns (string memory) {
-        return string(abi.encodePacked(
-            '{ "TLCC_VERSION": ', Strings.toString(TLCC_VERSION),
-            ', "MAX_FEE_IN_X1000": ', Strings.toString(MAX_FEE_IN_X1000),
-            ', "CIRCLES_MIN_MEMBERS": ', Strings.toString(CIRCLES_MIN_MEMBERS),
-            ', "CIRCLES_MAX_MEMBERS": ', Strings.toString(CIRCLES_MAX_MEMBERS), ' }'
-        ));
-    }
 }
