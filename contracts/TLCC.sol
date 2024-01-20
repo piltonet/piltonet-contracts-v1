@@ -1010,7 +1010,10 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
             ', "CIRCLES_MIN_ROUND_PAY": ', Strings.toString(minRoundPay / 10**tokenDecimal),
             ', "CIRCLES_MAX_ROUND_PAY": ', Strings.toString(maxRoundPay / 10**tokenDecimal),
             ', "CIRCLES_MIN_MEMBERS": ', Strings.toString(CIRCLES_MIN_MEMBERS),
-            ', "CIRCLES_MAX_MEMBERS": ', Strings.toString(CIRCLES_MAX_MEMBERS), ' }'
+            ', "CIRCLES_MAX_MEMBERS": ', Strings.toString(CIRCLES_MAX_MEMBERS),
+            ', "CIRCLES_SERVICE_CHARGE_X10000": ', Strings.toString(CIRCLES_SERVICE_CHARGE_X10000),
+            ', "CIRCLES_MAX_CREATOR_EARNINGS_X10000": ', Strings.toString(CIRCLES_MAX_CREATOR_EARNINGS_X10000),
+            ', "CIRCLES_MAX_PATIENCE_BENEFIT_X10000": ', Strings.toString(CIRCLES_MAX_PATIENCE_BENEFIT_X10000), ' }'
         ));
     }
 
