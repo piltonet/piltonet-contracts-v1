@@ -52,10 +52,11 @@ abstract contract AcceptedTokens {
         onlyAcceptedTokens(token) 
         returns (
             uint256 minRoundPay,
-            uint256 maxRoundPay
+            uint256 maxRoundPay,
+            uint8 tokenDecimal
         ) {
         for (uint256 i = 0; i < PAYMENT_TOKENS.length; i++) {
-            if (token == PAYMENT_TOKENS[i]) return (MIN_ROUND_PAY[i], MAX_ROUND_PAY[i]);
+            if (token == PAYMENT_TOKENS[i]) return (MIN_ROUND_PAY[i], MAX_ROUND_PAY[i], TOKEN_DECIMAL[i]);
         }
     }
 }

@@ -300,7 +300,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
         uint256 _roundPayment = paymentType == PaymentType.FIXED_PAY
             ? _fixedAmount
             : SafeMath.div(_fixedAmount, min_members);
-        (uint256 minRoundPay, uint256 maxRoundPay) = getRoundPayment(paymentToken);
+        (uint256 minRoundPay, uint256 maxRoundPay, ) = getRoundPayment(paymentToken);
         require(
             _roundPayment >= minRoundPay &&
             _roundPayment <= maxRoundPay,
@@ -1004,11 +1004,11 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
 
     // public
     function getTLCCConstants() public view returns (string memory) {
-        (uint256 minRoundPay, uint256 maxRoundPay) = getRoundPayment(paymentToken);
+        (uint256 minRoundPay, uint256 maxRoundPay, uint8 tokenDecimal) = getRoundPayment(paymentToken);
         return string(abi.encodePacked(
             '{ "TLCC_VERSION": ', Strings.toString(TLCC_VERSION),
-            ', "CIRCLES_MIN_ROUND_PAY": ', Strings.toString(minRoundPay),
-            ', "CIRCLES_MAX_ROUND_PAY": ', Strings.toString(maxRoundPay),
+            ', "CIRCLES_MIN_ROUND_PAY": ', Strings.toString(minRoundPay / 10**tokenDecimal),
+            ', "CIRCLES_MAX_ROUND_PAY": ', Strings.toString(maxRoundPay / 10**tokenDecimal),
             ', "CIRCLES_MIN_MEMBERS": ', Strings.toString(CIRCLES_MIN_MEMBERS),
             ', "CIRCLES_MAX_MEMBERS": ', Strings.toString(CIRCLES_MAX_MEMBERS), ' }'
         ));
