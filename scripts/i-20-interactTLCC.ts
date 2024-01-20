@@ -10,6 +10,9 @@ async function main() {
   let circleConstants = await Contract.getTLCCConstants();
   console.log('Circle Constants: ', JSON.parse(circleConstants));
   
+  let serviceAdmin = await Contract.serviceAdmin();
+  console.log('Service Admin: ', serviceAdmin);
+  
   let circleName = await Contract.circleName();
   console.log('Circle Name: ', circleName);
   

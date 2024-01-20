@@ -9,6 +9,7 @@ import "./access/AcceptedTokens.sol";
 import "./interfaces/ITLCC.sol";
 import "./constants/CTLCC.sol";
 import "./utils/SafeMath.sol";
+import "./utils/Utils.sol";
 
 /// @title Trusted Lending Circle Contract - TLCC
 /// @notice TLCC on Viction
@@ -1007,7 +1008,8 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
         (uint256 minRoundPay, uint256 maxRoundPay, uint8 tokenDecimal) = getRoundPayment(paymentToken);
         return string(abi.encodePacked(
             '{ "TLCC_VERSION": ', Strings.toString(TLCC_VERSION),
-            ', "CIRCLES_MIN_ROUND_PAY": ', Strings.toString(minRoundPay / 10**tokenDecimal),
+            ', "PILTONET_SERVICE_ADMIN": "', Utils.toString(PILTONET_SERVICE_ADMIN),
+            '", "CIRCLES_MIN_ROUND_PAY": ', Strings.toString(minRoundPay / 10**tokenDecimal),
             ', "CIRCLES_MAX_ROUND_PAY": ', Strings.toString(maxRoundPay / 10**tokenDecimal),
             ', "CIRCLES_MIN_MEMBERS": ', Strings.toString(CIRCLES_MIN_MEMBERS),
             ', "CIRCLES_MAX_MEMBERS": ', Strings.toString(CIRCLES_MAX_MEMBERS),
