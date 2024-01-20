@@ -12,9 +12,10 @@ async function main() {
 
   // TLCC
   const TLCC = await ethers.deployContract("contracts/TLCC.sol:TLCC", [
-    "0x046962DebEFf06Fa0C4730994968Aa3Ff38555b4", // tba
-    // "0x0000000000000000000000000000000000000000", // payment_token VIC
-    "0x093cD3E7806f6EadC76F9578fBF8BaCdf3aC7C3e", // payment_token CUSD
+    process.env.SERVICE_ADMIN_PUBLIC_KEY, // service admin
+    // "0x9C68ef09e85eF4615E63274BEE308361735b4c34", // tba
+    "0x0000000000000000000000000000000000000000", // payment_token VIC
+    // "0x093cD3E7806f6EadC76F9578fBF8BaCdf3aC7C3e", // payment_token CUSD
     0, // payment_type
     30, // round_days
     0, // winners_order

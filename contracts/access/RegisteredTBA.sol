@@ -55,7 +55,7 @@ abstract contract RegisteredTBA is CService {
         return profileAddr;
     }
 
-    function getTBAOwner(address account) internal view returns (address) {
+    function getTBAOwner(address account) internal view onlyRegisteredTBA(account) returns (address) {
         return IERC6551Account(payable(account)).owner();
     }
 }

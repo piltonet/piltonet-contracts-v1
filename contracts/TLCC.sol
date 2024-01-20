@@ -24,8 +24,6 @@ Such as payment token, length of each period, etc.
 contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
     using SafeMath for *;
 	
-    uint16 public constant TLCC_VERSION = 2;
-
     /*///////////////////////////////////////////////////////////////
                             States
     //////////////////////////////////////////////////////////////*/
@@ -225,9 +223,8 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact {
         uint16 patience_benefit_x10000,
         uint16 creator_earnings_x10000
     ) 
-        onlyRegisteredTBA(circle_admin)
 	{
-        require(msg.sender == getTBAOwner(circle_admin) || msg.sender == serviceAdmin(), "Error: only tba owner or service admin!");
+        require(msg.sender == serviceAdmin() || msg.sender == getTBAOwner(circle_admin), "Error: only tba owner or service admin!");
         // require(
         //     roundPeriodInSecs_ != 0 &&
         //         startTime_ >= block.timestamp.sub(MAXIMUM_TIME_PAST_SINCE_TLCC_START_SECS) &&
