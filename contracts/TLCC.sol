@@ -1005,13 +1005,23 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
 
     // public
     function getTLCCConstants() public view returns (string memory) {
-        (uint256 minRoundPay, uint256 maxRoundPay, uint8 tokenDecimal) = getRoundPayment(paymentToken);
+        string memory _paymentTokens;
+        for (uint256 i = 0; i < PAYMENT_TOKENS.length; i++) {
+            if(i > 0) _paymentTokens = string(abi.encodePacked(_paymentTokens, ","));
+            _paymentTokens = string(abi.encodePacked(
+                _paymentTokens,
+                '"', Utils.toString(PAYMENT_TOKENS[i]),
+                '" : { "TOKEN_SYMBOL": "', TOKEN_SYMBOLS[i],
+                '", "TOKEN_DECIMALS": ', Strings.toString(TOKEN_DECIMALS[i]),
+                ', "MIN_ROUND_PAY": ', Strings.toString(MIN_ROUND_PAY[i]),
+                ', "MAX_ROUND_PAY": ', Strings.toString(MAX_ROUND_PAY[i]), ' }'
+            ));
+        }
         return string(abi.encodePacked(
             '{ "TLCC_VERSION": ', Strings.toString(TLCC_VERSION),
             ', "PILTONET_SERVICE_ADMIN": "', Utils.toString(PILTONET_SERVICE_ADMIN),
-            '", "CIRCLES_MIN_ROUND_PAY": ', Strings.toString(minRoundPay / 10**tokenDecimal),
-            ', "CIRCLES_MAX_ROUND_PAY": ', Strings.toString(maxRoundPay / 10**tokenDecimal),
-            ', "CIRCLES_MIN_MEMBERS": ', Strings.toString(CIRCLES_MIN_MEMBERS),
+            '", "CIRCLES_PAYMENT_TOKENS": {', _paymentTokens,
+            '}, "CIRCLES_MIN_MEMBERS": ', Strings.toString(CIRCLES_MIN_MEMBERS),
             ', "CIRCLES_MAX_MEMBERS": ', Strings.toString(CIRCLES_MAX_MEMBERS),
             ', "CIRCLES_SERVICE_CHARGE_X10000": ', Strings.toString(CIRCLES_SERVICE_CHARGE_X10000),
             ', "CIRCLES_MAX_CREATOR_EARNINGS_X10000": ', Strings.toString(CIRCLES_MAX_CREATOR_EARNINGS_X10000),
