@@ -284,7 +284,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
     */
     function setupCircle(
         string memory circle_name,
-        uint256 fixed_amount,
+        string memory fixed_amount,
         uint8 min_members,
         uint8 max_members,
         uint8 winners_number
@@ -297,9 +297,10 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
         );
         
         // check round payment amount
+        uint256 _fixedAmount = Utils.stringToUint(fixed_amount);
         uint256 _roundPayment = paymentType == PaymentType.FIXED_PAY
-            ? fixed_amount
-            : SafeMath.div(fixed_amount, min_members);
+            ? _fixedAmount
+            : SafeMath.div(_fixedAmount, min_members);
         (uint256 minRoundPay, uint256 maxRoundPay, ) = getRoundPayment(paymentToken);
         require(
             _roundPayment >= minRoundPay &&
@@ -1009,7 +1010,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
             if(i > 0) _paymentTokens = string(abi.encodePacked(_paymentTokens, ","));
             _paymentTokens = string(abi.encodePacked(
                 _paymentTokens,
-                '"', Utils.toString(PAYMENT_TOKENS[i]),
+                '"', Utils.addressToString(PAYMENT_TOKENS[i]),
                 '" : { "TOKEN_SYMBOL": "', TOKEN_SYMBOLS[i],
                 '", "TOKEN_DECIMALS": ', Strings.toString(TOKEN_DECIMALS[i]),
                 ', "MIN_ROUND_PAY": ', Strings.toString(MIN_ROUND_PAY[i]),
@@ -1018,7 +1019,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
         }
         return string(abi.encodePacked(
             '{ "TLCC_VERSION": ', Strings.toString(TLCC_VERSION),
-            ', "PILTONET_SERVICE_ADMIN": "', Utils.toString(PILTONET_SERVICE_ADMIN),
+            ', "PILTONET_SERVICE_ADMIN": "', Utils.addressToString(PILTONET_SERVICE_ADMIN),
             '", "CIRCLES_PAYMENT_TOKENS": {', _paymentTokens,
             '}, "CIRCLES_MIN_MEMBERS": ', Strings.toString(CIRCLES_MIN_MEMBERS),
             ', "CIRCLES_MAX_MEMBERS": ', Strings.toString(CIRCLES_MAX_MEMBERS),
@@ -1027,5 +1028,4 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
             ', "CIRCLES_MAX_PATIENCE_BENEFIT_X10000": ', Strings.toString(CIRCLES_MAX_PATIENCE_BENEFIT_X10000), ' }'
         ));
     }
-
 }

@@ -77,7 +77,7 @@ contract ERC721Profile is ERC721, ERC721URIStorage, ServiceAdmin, IERC721Profile
         _totalTBAs++;
 
         /// @dev tokenURI = baseURI + tbaAddress
-        _setTokenURI(_tokenId, Utils.toString(_tbaAddress));
+        _setTokenURI(_tokenId, Utils.addressToString(_tbaAddress));
 
         emit ProfileCreated(_tokenId, _tbaAddress);
 

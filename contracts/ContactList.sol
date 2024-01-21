@@ -101,7 +101,7 @@ contract ContactList is ERC1155, ERC1155Supply, ServiceAdmin, RegisteredTBA {
     function uri(uint256 tokenId) public view override(ERC1155) returns (string memory) {
         return string(abi.encodePacked(
             ERC1155.uri(tokenId),
-            Utils.toString(_idOwner[tokenId])
+            Utils.addressToString(_idOwner[tokenId])
         ));
     }
 
