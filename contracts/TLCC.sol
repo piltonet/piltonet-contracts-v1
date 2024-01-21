@@ -284,7 +284,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
     */
     function setupCircle(
         string memory circle_name,
-        uint256 fixed_amount_x100,
+        uint256 fixed_amount,
         uint8 min_members,
         uint8 max_members,
         uint8 winners_number
@@ -297,10 +297,9 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
         );
         
         // check round payment amount
-        uint256 _fixedAmount = paymentToken == address(0) ? (fixed_amount_x100 * 1 ether) / 100 : (fixed_amount_x100 * IVRC25(paymentToken).decimals()) / 100;
         uint256 _roundPayment = paymentType == PaymentType.FIXED_PAY
-            ? _fixedAmount
-            : SafeMath.div(_fixedAmount, min_members);
+            ? fixed_amount
+            : SafeMath.div(fixed_amount, min_members);
         (uint256 minRoundPay, uint256 maxRoundPay, ) = getRoundPayment(paymentToken);
         require(
             _roundPayment >= minRoundPay &&
