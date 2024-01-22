@@ -68,9 +68,9 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
     string public circleName; // To Do internal - public temp, for easy test
     uint256 public contributionSize; // To Do internal - public temp, for easy test
     uint256 public loanAmount; // To Do internal - public temp, for easy test
-    uint8 private minMembers;
-    uint8 private maxMembers;
-    uint8 private winnersNumber;
+    uint8 private circleSize;
+    uint8 private extraMembers;
+    uint8 private roundWinners;
     uint8 private maxRounds = 0;
 
     // To Do currentRound
@@ -285,9 +285,9 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
     function setupCircle(
         string memory circle_name,
         string memory fixed_amount,
-        uint8 min_members,
-        uint8 max_members,
-        uint8 winners_number
+        uint8 circle_size,
+        uint8 extra_members,
+        uint8 round_winners
     ) public onlyCircleAdmin {
         // check circle status before setup or update
         require(
@@ -300,7 +300,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
         uint256 _fixedAmount = Utils.stringToUint(fixed_amount);
         uint256 _roundPayment = paymentType == PaymentType.FIXED_PAY
             ? _fixedAmount
-            : SafeMath.div(_fixedAmount, min_members);
+            : SafeMath.div(_fixedAmount, circle_size);
         (uint256 minRoundPay, uint256 maxRoundPay, ) = getRoundPayment(paymentToken);
         require(
             _roundPayment >= minRoundPay &&
@@ -310,24 +310,27 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
 
         // check member counts & winners number
         require(
-            min_members >= CIRCLES_MIN_MEMBERS &&
-            min_members <= max_members &&
-            max_members <= CIRCLES_MAX_MEMBERS,
+            circle_size >= CIRCLES_MIN_MEMBERS &&
+            circle_size <= CIRCLES_MAX_MEMBERS,
             "Error: The number of members is out of range."
         );
         require(
-            SafeMath.div(min_members, winners_number) >= CIRCLES_MIN_MEMBERS,
+            extra_members <= circle_size * 2 / 10,
+            "Error: The number of extra members is more than 20% of the circle size."
+        );
+        require(
+            SafeMath.div(circle_size, round_winners) >= CIRCLES_MIN_MEMBERS,
             "Error: The number of winners is too big."
         );
 
         // update variables
         circleName = circle_name;
         contributionSize = _roundPayment;
-        loanAmount = SafeMath.mul(_roundPayment, min_members);
-        minMembers = min_members;
-        maxMembers = max_members;
-        winnersNumber = winners_number;
-        maxRounds = uint8(maxMembers.div(winnersNumber));
+        loanAmount = SafeMath.mul(_roundPayment, circle_size);
+        circleSize = circle_size;
+        extraMembers = extra_members;
+        roundWinners = round_winners;
+        maxRounds = uint8(extraMembers.div(roundWinners));
         circleStatus = CircleStatus.SETUPED;
         
         // add circle admin to whitelistAddresses as default
@@ -406,7 +409,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
         );
         require(whitelist[msg.sender].alive, "Error: Only whitelist.");
         require(!members[msg.sender].alive, "Error: Already a member.");
-        require(membersAddresses.length < maxMembers, "Error: Membership capacity is full.");
+        require(membersAddresses.length < extraMembers, "Error: Membership capacity is full.");
 
         // uint256 _balance = validateAndReturnContribution();
         
