@@ -388,13 +388,10 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
             "Error: The number of invited accounts before launch must be at least equal to the CIRCLES_MIN_MEMBERS."
         );
         require(
-            start_date > 10 ** 9 &&
-                start_date < 10 ** 10 && // Start date must be a 10-digit number
-                start_date.div(60 * 60 * 24) >
-                block.timestamp.div(60 * 60 * 24) && // and at least one day later
-                start_date.div(60 * 60 * 24).mul(60 * 60 * 24) -
-                    block.timestamp >
-                60 * 60 * 12, // and at least 12 hours later
+            // Start date must be a 10-digit number
+            start_date > (10 ** 9) && start_date < (10 ** 10)
+            // and at least one day later
+            && SafeMath.div(start_date, 60 * 60 * 24) > SafeMath.div(block.timestamp, 60 * 60 * 24),
             "Error: The start date is out of range."
         );
 
