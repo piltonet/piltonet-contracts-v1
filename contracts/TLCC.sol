@@ -231,6 +231,10 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
         require(msg.sender == serviceAdmin() || msg.sender == getTBAOwner(circle_admin), "Error: only tba owner or service admin!");
         
         require(
+            patience_benefit_x10000 == 0 || winners_order != WinnersOrder.BIDDING,
+            "Error: The patience benefit is not available in bidding mode."
+        );
+        require(
             patience_benefit_x10000 <= CIRCLES_MAX_PATIENCE_BENEFIT_X10000,
             "Error: The patience benefit is out of range."
         );
@@ -358,8 +362,8 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
         // onlyTrustedContacts(accounts)
     {
         require(
-            circleStatus == CircleStatus.SETUPED,
-            "Error: The circle is not setuped or is started."
+            circleStatus == CircleStatus.SETUPED || circleStatus == CircleStatus.LAUNCHED,
+            "Error: Unable to add to the whitelist of this circle."
         );
 
         for (uint8 i = 0; i < accounts.length; i++) {
