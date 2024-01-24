@@ -32,13 +32,6 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
     address internal circleAdmin;
     address public paymentToken; // public - allow easy verification of token contract.
 
-    // Payment Type
-    enum PaymentType {
-        FIXED_PAY, // 0 : Loan amount will be based on the number of members and other rules. (FIXED_PAY)
-        FIXED_LOAN // 1 : Contribution amount will be based on the number of members and other rules. (FIXED_LOAN)
-    }
-    PaymentType paymentType;
-
     uint16 internal roundDays;
 
     // Winners Order
@@ -66,12 +59,9 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
 
     // TLCC parameters
     string public circleName; // To Do internal - public temp, for easy test
-    uint256 public contributionSize; // To Do internal - public temp, for easy test
+    uint256 public roundPayments; // To Do internal - public temp, for easy test
     uint256 public loanAmount; // To Do internal - public temp, for easy test
     uint8 private circleSize;
-    uint8 private extraMembers;
-    uint8 private roundWinners;
-    uint8 private maxRounds = 0;
 
     // To Do currentRound
     uint16 public currentRound = 1; // circle is started the moment it is created
@@ -220,16 +210,37 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
     constructor(
         address circle_admin, // token bound account
         address payment_token, // address(0) for VIC
-        PaymentType payment_type,
+        string memory circle_name,
+        uint8 circle_size,
         uint16 round_days,
+        string memory round_payments,
         WinnersOrder winners_order,
         uint16 patience_benefit_x10000,
         uint16 creator_earnings_x10000
     ) 
         onlyAcceptedTokens(payment_token)
 	{
-        require(msg.sender == serviceAdmin() || msg.sender == getTBAOwner(circle_admin), "Error: only tba owner or service admin!");
-        
+        require(
+            msg.sender == serviceAdmin() || msg.sender == getTBAOwner(circle_admin),
+            "Error: only tba owner or service admin!"
+        );
+        require(
+            circle_size >= CIRCLES_MIN_MEMBERS &&
+            circle_size <= CIRCLES_MAX_MEMBERS,
+            "Error: The circle size is out of range."
+        );
+        require(
+            round_days != 0,
+            "Error: The round days must be greater than 0."
+        );
+        // check round payments amount
+        (uint256 minRoundPay, uint256 maxRoundPay, ) = getRoundPayment(payment_token);
+        uint256 _roundPayments = Utils.stringToUint(round_payments);
+        require(
+            _roundPayments >= minRoundPay &&
+            _roundPayments <= maxRoundPay,
+            "Error: The round payments is out of range."
+        );
         require(
             patience_benefit_x10000 == 0 || winners_order != WinnersOrder.BIDDING,
             "Error: The patience benefit is not available in bidding mode."
@@ -242,37 +253,20 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
             creator_earnings_x10000 <= CIRCLES_MAX_CREATOR_EARNINGS_X10000,
             "Error: The creator earnings is out of range."
         );
-        
-        // require(
-        //     roundPeriodInSecs_ != 0 &&
-        //         startTime_ >= block.timestamp.sub(MAXIMUM_TIME_PAST_SINCE_TLCC_START_SECS) &&
-        //         serviceFeeInThousandths_ <= MAX_FEE_IN_X1000 &&
-        //         members_.length > 1 &&
-        //         members_.length <= 256,
-        //     "member count must be 1 < x <= 256"
-        // );
 
+        // update variables
         circleAdmin = circle_admin;
         paymentToken = payment_token;
-        paymentType = payment_type;
+        circleName = circle_name;
+        circleSize = circle_size;
         roundDays = round_days;
+        roundPayments = Utils.stringToUint(round_payments);
+        loanAmount = SafeMath.mul(roundPayments, circleSize);
         winnersOrder = winners_order;
-        creatorEarnings = creator_earnings_x10000;
         patienceBenefit = patience_benefit_x10000;
+        creatorEarnings = creator_earnings_x10000;
 
         circleStatus = CircleStatus.DEPLOYED;
-
-        // roundPeriodInSecs = roundPeriodInSecs_;
-        // contributionSize = contributionSize_;
-        // startTime = startTime_;
-        // serviceFeeInThousandths = serviceFeeInThousandths_;
-
-
-        // for (uint8 i = 0; i < members_.length; i++) {
-        //     addMember(members_[i]);
-        // }
-
-        // require(members[msg.sender].alive);
 
         emit LogTLCCDeployed(address(this));
     }
@@ -288,7 +282,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
     */
     function setupCircle(
         string memory circle_name,
-        string memory fixed_amount,
+        string memory round_payments,
         uint8 circle_size,
         uint8 extra_members,
         uint8 round_winners
@@ -300,16 +294,14 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
             "Error: The circle is launched."
         );
         
-        // check round payment amount
-        uint256 _fixedAmount = Utils.stringToUint(fixed_amount);
-        uint256 _roundPayment = paymentType == PaymentType.FIXED_PAY
-            ? _fixedAmount
-            : SafeMath.div(_fixedAmount, circle_size);
+        // check round payments amount
+        uint256 _fixedAmount = Utils.stringToUint(round_payments);
+        uint256 _roundPayments = _fixedAmount;
         (uint256 minRoundPay, uint256 maxRoundPay, ) = getRoundPayment(paymentToken);
         require(
-            _roundPayment >= minRoundPay &&
-            _roundPayment <= maxRoundPay,
-            "Error: The round payment is out of range."
+            _roundPayments >= minRoundPay &&
+            _roundPayments <= maxRoundPay,
+            "Error: The round payments is out of range."
         );
 
         // check member counts & winners number
@@ -329,12 +321,9 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
 
         // update variables
         circleName = circle_name;
-        contributionSize = _roundPayment;
-        loanAmount = SafeMath.mul(_roundPayment, circle_size);
+        roundPayments = _roundPayments;
+        loanAmount = SafeMath.mul(_roundPayments, circle_size);
         circleSize = circle_size;
-        extraMembers = extra_members;
-        roundWinners = round_winners;
-        maxRounds = uint8(extraMembers.div(roundWinners));
         circleStatus = CircleStatus.SETUPED;
         
         // add circle admin to whitelistAddresses as default
@@ -410,19 +399,19 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
         );
         require(whitelist[msg.sender].alive, "Error: Only whitelist.");
         require(!members[msg.sender].alive, "Error: Already a member.");
-        require(membersAddresses.length < extraMembers, "Error: Membership capacity is full.");
+        require(membersAddresses.length < circleSize, "Error: Membership capacity is full.");
 
         // uint256 _balance = validateAndReturnContribution();
         
         uint256 _balance = paymentToken == address(0) ? msg.value : IVRC25(paymentToken).balanceOf(msg.sender);
-        require(_balance >= contributionSize, "Error: Not enough fund.");
-        // IVRC25(paymentToken).approve(address(this), contributionSize);
+        require(_balance >= roundPayments, "Error: Not enough fund.");
+        // IVRC25(paymentToken).approve(address(this), roundPayments);
         if (paymentToken != address(0)) {
             require(msg.value == 0, "Error: Circle can not accept VIC.");
             IVRC25(paymentToken).transferFrom(
                 msg.sender,
                 address(this),
-                contributionSize
+                roundPayments
             );
         }
 
@@ -663,7 +652,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
                 : IVRC25(paymentToken).allowance(msg.sender, address(this))
         );
         require(value != 0);
-        require(value >= contributionSize, "Error: Not enough fund.");
+        require(value >= roundPayments, "Error: Not enough fund.");
 
         if (isPaymentByVIC) {
             return value;
@@ -987,7 +976,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
      * @return uint256
      */
     function potSize() internal view virtual returns (uint256) {
-        return SafeMath.mul(contributionSize, membersAddresses.length);
+        return SafeMath.mul(roundPayments, membersAddresses.length);
     }
 
     /**
@@ -995,14 +984,14 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
      * @return uint256
      */
     function requiredContribution() internal view virtual returns (uint256) {
-        return SafeMath.mul(contributionSize, currentRound);
+        return SafeMath.mul(roundPayments, currentRound);
     }
 
     // Internal
     // --------------------------------------------------------------------------------
     function roundDueDate(uint8 round_index) internal virtual returns (uint256) {
         return
-            startDate > 0 && round_index < maxRounds
+            startDate > 0 && round_index < circleSize
                 ? startDate.add(roundDays.mul(round_index).mul(60 * 60 * 24))
                 : 0;
     }

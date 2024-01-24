@@ -19,8 +19,8 @@ async function main() {
   let circleStatus = await Contract.circleStatus();
   console.log('Circle Status: ', circleStatus);
   
-  let contributionSize = await Contract.contributionSize();
-  console.log('Contribution Size: ', contributionSize);
+  let roundPayments = await Contract.roundPayments();
+  console.log('Round Payments: ', roundPayments);
   
   let loanAmount = await Contract.loanAmount();
   console.log('Loan Amount: ', loanAmount);

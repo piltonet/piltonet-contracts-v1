@@ -16,8 +16,10 @@ async function main() {
     // "0x9C68ef09e85eF4615E63274BEE308361735b4c34", // tba
     "0x0000000000000000000000000000000000000000", // payment_token VIC
     // "0x093cD3E7806f6EadC76F9578fBF8BaCdf3aC7C3e", // payment_token CUSD
-    0, // payment_type
+    "Mock TLCC", // circle_name
+    5, // circle_size
     30, // round_days
+    "10000000000000000000", // round_payments
     0, // winners_order
     0, // patience_benefit_x10000
     0 // creator_earnings_x10000
