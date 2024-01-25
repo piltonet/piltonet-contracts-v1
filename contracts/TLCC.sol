@@ -234,7 +234,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
             "Error: The round days must be greater than 0."
         );
         // check round payments amount
-        (uint256 minRoundPay, uint256 maxRoundPay, ) = getRoundPayment(payment_token);
+        (uint256 minRoundPay, uint256 maxRoundPay, ) = getRoundPayments(payment_token);
         uint256 _roundPayments = Utils.stringToUint(round_payments);
         require(
             _roundPayments >= minRoundPay &&
@@ -305,7 +305,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
         // check round payments amount
         uint256 _fixedAmount = Utils.stringToUint(round_payments);
         uint256 _roundPayments = _fixedAmount;
-        (uint256 minRoundPay, uint256 maxRoundPay, ) = getRoundPayment(paymentToken);
+        (uint256 minRoundPay, uint256 maxRoundPay, ) = getRoundPayments(paymentToken);
         require(
             _roundPayments >= minRoundPay &&
             _roundPayments <= maxRoundPay,

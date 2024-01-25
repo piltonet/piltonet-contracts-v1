@@ -33,7 +33,7 @@ abstract contract AcceptedTokens {
     modifier onlyAcceptedTokens(address token) {
         require(
             isAcceptedTokens(token),
-            "The token is not accepted."
+            "Error: The token is not accepted."
         );
         _;
     }
@@ -49,7 +49,7 @@ abstract contract AcceptedTokens {
         return false;
     }
     
-    function getRoundPayment(address token) internal view
+    function getRoundPayments(address token) internal view
         onlyAcceptedTokens(token) 
         returns (
             uint256 minRoundPay,
