@@ -268,6 +268,14 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
 
         circleStatus = CircleStatus.DEPLOYED;
 
+        // add circle admin to whitelist as default
+        whitelist[circleAdmin] = Whitelist({
+            alive: true,
+            listedBy: circleAdmin,
+            joined: false
+        });
+        whitelistAddresses.push(circleAdmin);
+
         emit LogTLCCDeployed(address(this));
     }
 
