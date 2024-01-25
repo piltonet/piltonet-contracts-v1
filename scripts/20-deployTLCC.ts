@@ -20,7 +20,7 @@ async function main() {
     "Mock TLCC", // circle_name
     5, // circle_size
     30, // round_days
-    "1000000000000000000", // round_payments
+    "10000000000000000000", // round_payments
     0, // winners_order
     0, // patience_benefit_x10000
     0 // creator_earnings_x10000

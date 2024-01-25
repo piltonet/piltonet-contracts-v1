@@ -48,7 +48,6 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
     // Circle Status
     enum CircleStatus {
         DEPLOYED,
-        SETUPED,
         LAUNCHED,
         STARTED,
         PAUSED,
@@ -288,7 +287,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
     * Only circle admin (tokenbound-account) can setup the circle
     * Variables can only be initialized and updated before the circle is launched.
     */
-    function setupCircle(
+    function updateCircle(
         string memory circle_name,
         string memory round_payments,
         uint8 circle_size,
@@ -297,9 +296,8 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
     ) public onlyCircleAdmin {
         // check circle status before setup or update
         require(
-            circleStatus == CircleStatus.DEPLOYED ||
-            circleStatus == CircleStatus.SETUPED,
-            "Error: The circle is launched."
+            circleStatus == CircleStatus.DEPLOYED,
+            "Error: It is not possible to update the circle."
         );
         
         // check round payments amount
@@ -332,7 +330,6 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
         roundPayments = _roundPayments;
         loanAmount = SafeMath.mul(_roundPayments, circle_size);
         circleSize = circle_size;
-        circleStatus = CircleStatus.SETUPED;
         
         // add circle admin to whitelistAddresses as default
         whitelist[msg.sender] = Whitelist({
@@ -359,7 +356,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
         // onlyTrustedContacts(accounts)
     {
         require(
-            circleStatus == CircleStatus.SETUPED || circleStatus == CircleStatus.LAUNCHED,
+            circleStatus == CircleStatus.LAUNCHED,
             "Error: Unable to add to the whitelist of this circle."
         );
 
@@ -377,12 +374,12 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
 
     function launchCircle(uint256 start_date) public onlyCircleAdmin {
         require(
-            circleStatus == CircleStatus.SETUPED,
-            "Error: The circle status is not ready for launch."
+            circleStatus == CircleStatus.DEPLOYED,
+            "Error: The circle status is not ready for the launch."
         );
         require(
             whitelistAddresses.length >= CIRCLES_MIN_MEMBERS,
-            "Error: The number of invited accounts before launch must be at least equal to the CIRCLES_MIN_MEMBERS."
+            "Error: The number of whitelisted accounts is insufficient for the launch."
         );
         require(
             // Start date must be a 10-digit number
