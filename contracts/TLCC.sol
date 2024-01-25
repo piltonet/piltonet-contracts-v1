@@ -356,7 +356,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
         // onlyTrustedContacts(accounts)
     {
         require(
-            circleStatus == CircleStatus.LAUNCHED,
+            circleStatus == CircleStatus.DEPLOYED || circleStatus == CircleStatus.LAUNCHED,
             "Error: Unable to add to the whitelist of this circle."
         );
 
