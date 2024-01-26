@@ -90,7 +90,6 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
         bool paid; // yes if the member had won a Round
         bool debtor; // true if member won the pot while not in good standing and is still not in good standing
         bool isModerator; // true if the member is a moderator of the circle
-        
     }
     mapping(address => Member) public members; // To Do private - public temp, for easy test
     address[] private membersAddresses; // for iterating through members' addresses
