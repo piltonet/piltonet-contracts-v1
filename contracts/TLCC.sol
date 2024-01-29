@@ -168,8 +168,9 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
 
     modifier onlyCircleModerators() {
         require(
-            msg.sender == circleAdmin ||
-                (members[msg.sender].alive && members[msg.sender].isModerator)
+            (msg.sender == serviceAdmin() && !isFullyDecCircle) || msg.sender == getTBAOwner(circleAdmin) || msg.sender == circleAdmin
+                || (members[msg.sender].alive && members[msg.sender].isModerator),
+            "Error: The sender is not permitted to do so."
         );
         _;
     }
