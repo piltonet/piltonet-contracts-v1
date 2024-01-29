@@ -26,8 +26,8 @@ abstract contract CTLCC {
     // Service account from which Escape Hatch can be enabled.
     address internal constant ESCAPE_HATCH_ENABLER = 0x2B27F8c647872BC0f5E4C7cA8e3aEAEe19A28f3A;
 
-    uint8 internal constant CIRCLES_MIN_MEMBERS = 3; // Minimum number of members is 2 accounts
-    uint8 internal constant CIRCLES_MAX_MEMBERS = 15; // Maximum number of members is 20 accounts
+    uint8 internal constant CIRCLES_MIN_MEMBERS = 2; // Minimum number of members is 2 accounts
+    uint8 internal constant CIRCLES_MAX_MEMBERS = 20; // Maximum number of members is 20 accounts
     
     uint16 internal constant CIRCLES_FD_SERVICE_CHARGE_X10000 = 20; // The fully decentralized circles' service charge is 0.2%
     uint16 internal constant CIRCLES_SD_SERVICE_CHARGE_X10000 = 30; // The semi-decentralized circles' service charge is 0.3%
