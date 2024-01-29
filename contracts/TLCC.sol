@@ -27,25 +27,8 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
     using SafeMath for *;
 	
     /*///////////////////////////////////////////////////////////////
-                            States
+                            Enums & Structures
     //////////////////////////////////////////////////////////////*/
-    address internal circleAdmin;
-    address public paymentToken; // public - allow easy verification of token contract.
-
-    uint16 internal roundDays;
-
-    // Winners Order
-    enum WinnersOrder {
-        RANDOM, // 0 : Winner(s) is/are chosen at random (RANDOM)
-        FIXED, // 1 : Winner(s) is/are selected through a predetermined ordered list (FIXED)
-        BIDDING // 2 : Lowest bidder wins (BIDDING)
-    }
-    WinnersOrder winnersOrder;
-
-    uint16 internal creatorEarnings; // Multiplied by Ten Thousand Times
-    uint16 internal patienceBenefit; // Multiplied by Ten Thousand Times
-
-    // Circle Status
     enum CircleStatus {
         DEPLOYED,
         LAUNCHED,
@@ -54,13 +37,45 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
         STOPED,
         COMPLETED
     }
-    CircleStatus public circleStatus; // To Do internal - public temp, for easy test
+    enum WinnersOrder {
+        RANDOM, // 0 : Winner(s) is/are chosen at random (RANDOM)
+        FIXED, // 1 : Winner(s) is/are selected through a predetermined ordered list (FIXED)
+        BIDDING // 2 : Lowest bidder wins (BIDDING)
+    }
+    struct Whitelist {
+        bool alive; // needed to check If it has already been added to the whitelist
+        address listedBy; // The moderator's address who whitelist this person
+        bool joined; // true if the person has joined as a member
+    }
+    struct Member {
+        bool alive; // needed to check if a member is indeed a member
+        uint8 selectedRound; // in fixed type of tlcc
+        uint256 totalPayments; // the total amount paid by member
+        uint256 loanAmount; // the total amount borrowed by member
+        uint256 credit; // amount of funds member has contributed - winnings (not including discounts) so far
+        bool paid; // yes if the member had won a Round
+        bool debtor; // true if member won the pot while not in good standing and is still not in good standing
+        bool isModerator; // true if the member is a moderator of the circle
+    }
 
+    /*///////////////////////////////////////////////////////////////
+                            States
+    //////////////////////////////////////////////////////////////*/
     // TLCC parameters
+    address public circleAdmin; // To Do internal - public temp, for easy test
+    address public paymentToken; // public - enable easy verification of token contract.
     string public circleName; // To Do internal - public temp, for easy test
+    uint8 public circleSize; // To Do internal - public temp, for easy test
+    uint16 public roundDays; // To Do internal - public temp, for easy test
     uint256 public roundPayments; // To Do internal - public temp, for easy test
     uint256 public loanAmount; // To Do internal - public temp, for easy test
-    uint8 private circleSize;
+    WinnersOrder public winnersOrder; // To Do internal - public temp, for easy test
+    uint16 internal patienceBenefit; // Multiplied by Ten Thousand Times
+    uint16 internal creatorEarnings; // Multiplied by Ten Thousand Times
+    CircleStatus public circleStatus; // To Do internal - public temp, for easy test
+
+    // isFullyDecCircle is set to true if circle is fully decentralized and vice versa
+    bool public isFullyDecCircle; // public - enable easy verification of circular mode.
 
     // To Do currentRound
     uint16 public currentRound = 1; // circle is started the moment it is created
@@ -72,25 +87,11 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
     uint16 internal serviceFeeInThousandths;
     uint256 internal roundPeriodInSecs;
 
-    // The list of contacts who are whitelisted to join the circle
-    struct Whitelist {
-        bool alive; // needed to check If it has already been added to the whitelist
-        address listedBy; // The moderator's address who whitelist this person
-        bool joined; // true if the person has joined as a member
-    }
+    // List of addresses who are whitelisted to join the circle
     mapping(address => Whitelist) private whitelist;
     address[] private whitelistAddresses; // for iterating through whitelist's addresses
 
-    struct Member {
-        bool alive; // needed to check if a member is indeed a member
-        uint8 selectedRound; // in fixed type of tlcc
-        uint256 totalPayments; // the total amount paid by member
-        uint256 loanAmount; // the total amount borrowed by member
-        uint256 credit; // amount of funds member has contributed - winnings (not including discounts) so far
-        bool paid; // yes if the member had won a Round
-        bool debtor; // true if member won the pot while not in good standing and is still not in good standing
-        bool isModerator; // true if the member is a moderator of the circle
-    }
+    // List of addresses that have joined the circle
     mapping(address => Member) public members; // To Do private - public temp, for easy test
     address[] private membersAddresses; // for iterating through members' addresses
 
@@ -156,6 +157,14 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
         require(msg.sender == circleAdmin);
         _;
     }
+    
+    modifier onlyAuthorizedAccounts() {
+        require(
+            (msg.sender == serviceAdmin() && !isFullyDecCircle) || msg.sender == getTBAOwner(circleAdmin) || msg.sender == circleAdmin,
+            "Error: The sender is not permitted to do so."
+        );
+        _;
+    }
 
     modifier onlyCircleModerators() {
         require(
@@ -202,11 +211,12 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
     /**
     * @dev Deploy a new TLCC and initializing the contract states.
     * States cannot be changed after deploy.
-    * The "circle_admin" must be a registered token bound account.
-    * Only the owner of "circle_admin" or Piltonet Service Admin can deploy a new TLCC
+    * In fully decentralized circle, "circle_admin" should be sent as address(0) and the circleAdmin is the token-bound account of the msg.sender
+    * In semi-decentralized circle, the "circle_admin" should be a registered token-bound account 
+    * In semi-decentralized circle, the msg.sender should be the owner of "circle_admin" or Piltonet Service Admin
     */
     constructor(
-        address circle_admin, // token bound account
+        address circle_admin, // address(0) or registered tba
         address payment_token, // address(0) for VIC
         string memory circle_name,
         uint8 circle_size,
@@ -217,10 +227,57 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
         uint16 creator_earnings_x10000
     ) 
         onlyAcceptedTokens(payment_token)
+        onlyRegisteredTBA(circle_admin == address(0) ? getTBAOf(msg.sender) : circle_admin)
 	{
+        // circle mode is fully decentralized if circle_admin == address(0)
+        isFullyDecCircle = circle_admin == address(0);
+        
+        circleAdmin = isFullyDecCircle ? getTBAOf(msg.sender) : circle_admin;
+
+        paymentToken = payment_token;
+
+        circleStatus = CircleStatus.DEPLOYED;
+        
+        updateCircle(circle_name, circle_size, round_days, round_payments, winners_order, patience_benefit_x10000, creator_earnings_x10000);
+
+        // add circle admin to whitelist as default
+        whitelist[circleAdmin] = Whitelist({
+            alive: true,
+            listedBy: circleAdmin,
+            joined: false
+        });
+        whitelistAddresses.push(circleAdmin);
+
+        emit LogTLCCDeployed(address(this));
+    }
+
+    /*///////////////////////////////////////////////////////////////
+                            Functions
+    //////////////////////////////////////////////////////////////*/
+    
+    /**
+    * @dev Update the necessary variables of TLCC.
+    */
+    function updateCircle(
+        string memory circle_name,
+        uint8 circle_size,
+        uint16 round_days,
+        string memory round_payments,
+        WinnersOrder winners_order,
+        uint16 patience_benefit_x10000,
+        uint16 creator_earnings_x10000
+    )
+        public
+        onlyAuthorizedAccounts
+    {
+        // circle can only be uupdated when the circle status is deployed
         require(
-            msg.sender == serviceAdmin() || msg.sender == getTBAOwner(circle_admin),
-            "Error: only tba owner or service admin!"
+            circleStatus == CircleStatus.DEPLOYED,
+            "Error: It is not possible to update the circle."
+        );
+        require(
+            (msg.sender == serviceAdmin() && !isFullyDecCircle) || msg.sender == getTBAOwner(circleAdmin),
+            "Error: The sender is not permitted to do so."
         );
         require(
             circle_size >= CIRCLES_MIN_MEMBERS &&
@@ -228,11 +285,11 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
             "Error: The circle size is out of range."
         );
         require(
-            round_days != 0,
+            round_days > 0,
             "Error: The round days must be greater than 0."
         );
         // check round payments amount
-        (uint256 minRoundPay, uint256 maxRoundPay, ) = getRoundPayments(payment_token);
+        (uint256 minRoundPay, uint256 maxRoundPay, ) = getRoundPayments(paymentToken);
         uint256 _roundPayments = Utils.stringToUint(round_payments);
         require(
             _roundPayments >= minRoundPay &&
@@ -253,8 +310,6 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
         );
 
         // update variables
-        circleAdmin = circle_admin;
-        paymentToken = payment_token;
         circleName = circle_name;
         circleSize = circle_size;
         roundDays = round_days;
@@ -263,80 +318,6 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
         winnersOrder = winners_order;
         patienceBenefit = patience_benefit_x10000;
         creatorEarnings = creator_earnings_x10000;
-
-        circleStatus = CircleStatus.DEPLOYED;
-
-        // add circle admin to whitelist as default
-        whitelist[circleAdmin] = Whitelist({
-            alive: true,
-            listedBy: circleAdmin,
-            joined: false
-        });
-        whitelistAddresses.push(circleAdmin);
-
-        emit LogTLCCDeployed(address(this));
-    }
-
-    /*///////////////////////////////////////////////////////////////
-                            Functions
-    //////////////////////////////////////////////////////////////*/
-    
-    /**
-    * @dev Setup/Update the necessary variables of TLCC.
-    * Only circle admin (tokenbound-account) can setup the circle
-    * Variables can only be initialized and updated before the circle is launched.
-    */
-    function updateCircle(
-        string memory circle_name,
-        string memory round_payments,
-        uint8 circle_size,
-        uint8 extra_members,
-        uint8 round_winners
-    ) public onlyCircleAdmin {
-        // check circle status before setup or update
-        require(
-            circleStatus == CircleStatus.DEPLOYED,
-            "Error: It is not possible to update the circle."
-        );
-        
-        // check round payments amount
-        uint256 _fixedAmount = Utils.stringToUint(round_payments);
-        uint256 _roundPayments = _fixedAmount;
-        (uint256 minRoundPay, uint256 maxRoundPay, ) = getRoundPayments(paymentToken);
-        require(
-            _roundPayments >= minRoundPay &&
-            _roundPayments <= maxRoundPay,
-            "Error: The round payments is out of range."
-        );
-
-        // check member counts & winners number
-        require(
-            circle_size >= CIRCLES_MIN_MEMBERS &&
-            circle_size <= CIRCLES_MAX_MEMBERS,
-            "Error: The number of members is out of range."
-        );
-        require(
-            extra_members <= circle_size * 2 / 10,
-            "Error: The number of extra members is more than 20% of the circle size."
-        );
-        require(
-            SafeMath.div(circle_size, round_winners) >= CIRCLES_MIN_MEMBERS,
-            "Error: The number of winners is too big."
-        );
-
-        // update variables
-        circleName = circle_name;
-        roundPayments = _roundPayments;
-        loanAmount = SafeMath.mul(_roundPayments, circle_size);
-        circleSize = circle_size;
-        
-        // add circle admin to whitelistAddresses as default
-        whitelist[msg.sender] = Whitelist({
-            alive: true,
-            listedBy: msg.sender,
-            joined: false
-        });
-        whitelistAddresses.push(msg.sender);
     }
 
     /**

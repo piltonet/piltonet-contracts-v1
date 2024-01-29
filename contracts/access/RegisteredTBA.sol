@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "../constants/CService.sol";
 import "../tba/interfaces/IERC6551Account.sol";
+import "../tba/interfaces/IERC721Profile.sol";
 
 abstract contract RegisteredTBA is CService {
 
@@ -20,7 +21,7 @@ abstract contract RegisteredTBA is CService {
     modifier onlyTBASender() {
         require(
             getTBAProfile(msg.sender) == PILTONET_PROFILE_ADDRESS,
-            "The sender is not a valid tokenbound-account."
+            "Error: The sender is not a valid tokenbound-account."
         );
         _;
     }
@@ -28,7 +29,7 @@ abstract contract RegisteredTBA is CService {
     modifier onlyTBAOwner(address account) {
         require(
             getTBAOwner(account) == msg.sender,
-            "The sender is not the tokenbound-account owner."
+            "Error: The sender is not the tokenbound-account owner."
         );
         _;
     }
@@ -36,7 +37,7 @@ abstract contract RegisteredTBA is CService {
     modifier onlyRegisteredTBA(address account) {
         require(
             getTBAProfile(account) == PILTONET_PROFILE_ADDRESS,
-            "The account is not a valid tokenbound-account."
+            "Error: The account is not a valid tokenbound-account."
         );
         _;
     }
@@ -51,11 +52,26 @@ abstract contract RegisteredTBA is CService {
     }
 
     function getTBAProfile(address account) internal view returns (address) {
-        (, address profileAddr, ) = IERC6551Account(payable(account)).token();
-        return profileAddr;
+        try IERC6551Account(payable(account)).token() returns (uint256, address profileAddr, uint256) {
+            return profileAddr;
+        } catch {
+            return address(0);
+        }
     }
 
     function getTBAOwner(address account) internal view onlyRegisteredTBA(account) returns (address) {
-        return IERC6551Account(payable(account)).owner();
+        try IERC6551Account(payable(account)).owner() returns (address tbaOwner) {
+            return tbaOwner;
+        } catch {
+            return address(0);
+        }
+    }
+
+    function getTBAOf(address account) internal view returns (address) {
+        try IERC721Profile(payable(PILTONET_PROFILE_ADDRESS)).tokenOf(account) returns (uint256, address tba) {
+            return tba;
+        } catch {
+            return address(0);
+        }
     }
 }

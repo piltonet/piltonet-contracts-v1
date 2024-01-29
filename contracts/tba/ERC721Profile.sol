@@ -94,7 +94,7 @@ contract ERC721Profile is ERC721, ERC721URIStorage, ServiceAdmin, IERC721Profile
         emit RemoveProfile(tokenId);
     }
 
-    /// @notice return the number of exist tokenbound-accounnts
+    /// @notice return the tokenId and tokenbound-accounnt of account
     function tokenOf(address account) external view returns (uint256, address) {
         return (_tokenIdOf[account], _tbaOf[account]);
     }

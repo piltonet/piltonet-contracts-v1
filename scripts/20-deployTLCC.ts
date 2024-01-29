@@ -13,7 +13,8 @@ async function main() {
 
   // TLCC
   const TLCC = await ethers.deployContract("contracts/TLCC.sol:TLCC", [
-    process.env.SERVICE_ADMIN_PUBLIC_KEY, // service admin
+    // process.env.SERVICE_ADMIN_PUBLIC_KEY, // service admin
+    "0x0000000000000000000000000000000000000000", // address(0) for fully decentralized
     // "0x9C68ef09e85eF4615E63274BEE308361735b4c34", // tba
     "0x0000000000000000000000000000000000000000", // payment_token VIC
     // "0x093cD3E7806f6EadC76F9578fBF8BaCdf3aC7C3e", // payment_token CUSD
@@ -28,6 +29,8 @@ async function main() {
     gasLimit: 6000000
   });
 
+  console.log("Deploying contract in expected address:", await TLCC.getAddress());
+  
   try {
     await TLCC.waitForDeployment();
 
