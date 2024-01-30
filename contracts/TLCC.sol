@@ -139,22 +139,22 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
     }
 
     modifier onlyNonZeroAddress(address toCheck) {
-        require(toCheck != address(0));
+        require(toCheck != address(0), "Error: Only non zero address.");
         _;
     }
 
     modifier onlyWhitelist() {
-        require(whitelist[msg.sender].alive);
+        require(whitelist[msg.sender].alive, "Error: Only accounts on the whitelist are allowed to do so.");
         _;
     }
     
     modifier onlyMember() {
-        require(members[msg.sender].alive);
+        require(members[msg.sender].alive, "Error: Only circle members are permitted to do so.");
         _;
     }
 
     modifier onlyCircleAdmin() {
-        require(msg.sender == circleAdmin);
+        require(msg.sender == circleAdmin, "Error: Only circle admin is permitted to do so.");
         _;
     }
     
@@ -846,7 +846,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
      */
     function endOfTLCCRetrieveSurplus()
         external
-        onlyCircleAdmin
+        onlyAuthorizedAccounts
         onlyIfCircleEnded
     {
         uint256 roscaCollectionTime = SafeMath.add(
@@ -879,7 +879,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
      */
     function endOfTLCCRetrieveFees()
         external
-        onlyCircleAdmin
+        onlyAuthorizedAccounts
         onlyIfCircleEnded
     {
         uint256 tempTotalFees = totalFees; // prevent re-entry.
@@ -908,7 +908,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
      * contributions and withdrawals, and allow the admin to retrieve all funds into their own account,
      * to be dispersed offline to the other participants.
      */
-    function activateEscapeHatch() external onlyCircleAdmin {
+    function activateEscapeHatch() external onlyAuthorizedAccounts {
         require(escapeHatchEnabled);
 
         escapeHatchActive = true;
@@ -921,7 +921,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
      */
     function emergencyWithdrawal()
         external
-        onlyCircleAdmin
+        onlyAuthorizedAccounts
         onlyIfEscapeHatchActive
     {
         emit LogEmergencyWithdrawalPerformed(getBalance(), currentRound);
