@@ -36,6 +36,15 @@ async function main() {
   
     // copy abi file to outcome/abi
     fs.copyFileSync(`${abiDir}/ERC721Profile.json`, `${outcomeAbiDir}/ERC721Profile.json`);
+
+    // add service admin to profile
+    let createProfile = await ERC721Profile.createProfile(process.env.SERVICE_ADMIN_PUBLIC_KEY, {
+      gasLimit: 4000000
+    });
+    await createProfile.wait();
+    console.log('Service admin has been added to the profile.');
+    
+
   } catch(error: any) {
     const result = await getRevertReason(error.receipt.hash);
     console.error(result);
