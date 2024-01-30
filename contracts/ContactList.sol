@@ -78,19 +78,13 @@ contract ContactList is ERC1155, ERC1155Supply, ServiceAdmin, RegisteredTBA {
         }
     }
 
-    function myContacts() public view
-        onlyTBASender()
-        returns (address[] memory)
-    {
-        return _contactList[msg.sender];
-    }
-    
-    function isMyContact(address account) public view
-        onlyTBASender()
+    function isContact(address account1, address account2) public view
+        onlyRegisteredTBA(account1)
+        onlyRegisteredTBA(account2)
         returns (bool)
     {
-        return (balanceOf(msg.sender, getTBATokenId(account)) > 0
-            && balanceOf(account, getTBATokenId(msg.sender)) > 0);
+        return (balanceOf(account1, getTBATokenId(account2)) > 0
+            && balanceOf(account2, getTBATokenId(account1)) > 0);
     }
 
     function setURI(string memory newuri) public onlyServiceAdmin {

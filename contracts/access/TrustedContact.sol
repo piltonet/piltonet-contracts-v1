@@ -2,9 +2,10 @@
 pragma solidity ^0.8.20;
 
 import "../constants/CService.sol";
+import "../access/RegisteredTBA.sol";
 import "../interfaces/IContactList.sol";
 
-abstract contract TrustedContact is CService {
+abstract contract TrustedContact is CService, RegisteredTBA {
 
     /**
      * @dev Returns the address of the ContactList contract.
@@ -17,18 +18,18 @@ abstract contract TrustedContact is CService {
                             Modifiers
     //////////////////////////////////////////////////////////////*/
     
-    modifier onlyTrustedContact(address account) {
+    modifier onlyMyContact(address account) {
         require(
-            isTrustedContact(account),
-            "The account is not a trusted contact."
+            isContact(msg.sender, account),
+            "Error: The account is not a trusted contact."
         );
         _;
     }
     
-    modifier onlyTrustedContacts(address[] memory accounts) {
+    modifier onlyContacts(address account, address[] memory accounts) {
         require(
-            areTrustedContacts(accounts),
-            "Not all accounts are trusted contact."
+            areContacts(account, accounts),
+            "Error: Not all accounts are trusted contact."
         );
         _;
     }
@@ -38,14 +39,14 @@ abstract contract TrustedContact is CService {
                             Getters
     //////////////////////////////////////////////////////////////*/
 
-    function isTrustedContact(address account) internal view returns (bool) {
-        return IContactList(payable(PILTONET_CONTACTLIST_ADDRESS)).isMyContact(account);
+    function isContact(address account1, address account2) internal view returns (bool) {
+        return IContactList(payable(PILTONET_CONTACTLIST_ADDRESS)).isContact(account1, account2);
     }
 
-    function areTrustedContacts(address[] memory accounts) internal view returns (bool) {
+    function areContacts(address account, address[] memory accounts) internal view returns (bool) {
         IContactList _ContactList = IContactList(payable(PILTONET_CONTACTLIST_ADDRESS));
         for (uint256 i = 0; i < accounts.length; i++) {
-            if (!_ContactList.isMyContact(accounts[i])) return false;
+            if (!_ContactList.isContact(account, accounts[i])) return false;
         }
         return true;
     }

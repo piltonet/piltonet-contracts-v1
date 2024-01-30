@@ -55,7 +55,6 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
         uint256 credit; // amount of funds member has contributed - winnings (not including discounts) so far
         bool paid; // yes if the member had won a Round
         bool debtor; // true if member won the pot while not in good standing and is still not in good standing
-        bool isModerator; // true if the member is a moderator of the circle
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -90,6 +89,9 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
     // List of addresses who are whitelisted to join the circle
     mapping(address => Whitelist) private whitelist;
     address[] private whitelistAddresses; // for iterating through whitelist's addresses
+    
+    // If address is the moderator of the circle
+    mapping(address => bool) private isModerator;
 
     // List of addresses that have joined the circle
     mapping(address => Member) public members; // To Do private - public temp, for easy test
@@ -169,7 +171,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
     modifier onlyCircleModerators() {
         require(
             (msg.sender == serviceAdmin() && !isFullyDecCircle) || msg.sender == getTBAOwner(circleAdmin) || msg.sender == circleAdmin
-                || (members[msg.sender].alive && members[msg.sender].isModerator),
+                || isModerator[msg.sender],
             "Error: The sender is not permitted to do so."
         );
         _;
@@ -325,16 +327,15 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
     * @dev A potential list of trusted contacts who are considered for membership in the circle.
     * Only circle admin and moderators can add to the whitelist.
     * Only trusted contacts of sender can be added to the whitelist.
-    * It can only be added to the whitelist after the circle is setuped and before it is launched.
+    * It can only be added to the whitelist before it is launched.
     */
-    function addToWhitelist(address[] memory accounts) public 
+    function addToWhitelist(address moderator, address[] memory accounts) public 
         onlyCircleModerators
 
         /** 
-         * To Do
-         * @dev check all accounts are sender contact
+         * @dev check all accounts are moderator contact
         */
-        // onlyTrustedContacts(accounts)
+        onlyContacts(moderator, accounts)
     {
         require(
             circleStatus == CircleStatus.DEPLOYED || circleStatus == CircleStatus.LAUNCHED,
@@ -345,7 +346,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
             if (!whitelist[accounts[i]].alive) {
                 whitelist[accounts[i]] = Whitelist({
                     alive: true,
-                    listedBy: msg.sender,
+                    listedBy: moderator,
                     joined: false
                 });
                 whitelistAddresses.push(accounts[i]);
@@ -409,8 +410,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
             loanAmount: 0,
             credit: 0,
             paid: false,
-            debtor: false,
-            isModerator: false
+            debtor: false
         });
         membersAddresses.push(msg.sender);
 
@@ -430,8 +430,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
             loanAmount: 0,
             credit: 0,
             paid: false,
-            debtor: false,
-            isModerator: false
+            debtor: false
         });
         membersAddresses.push(newMember);
     }
