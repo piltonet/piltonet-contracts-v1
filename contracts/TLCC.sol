@@ -353,7 +353,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
         }
     }
 
-    function launchCircle(uint256 start_date) public onlyCircleAdmin {
+    function launchCircle(uint256 start_date) public onlyAuthorizedAccounts {
         require(
             circleStatus == CircleStatus.DEPLOYED,
             "Error: The circle status is not ready for the launch."
