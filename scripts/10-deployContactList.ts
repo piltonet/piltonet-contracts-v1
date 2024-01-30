@@ -1,5 +1,6 @@
 import { ethers } from "hardhat";
 import * as fs from 'fs';
+import getRevertReason from './getRevertReason';
 
 async function main() {
   const NETWORK = process.env.DEFAULT_NETWORK;
@@ -8,7 +9,7 @@ async function main() {
   const deploymentsDir = `${process.env.OUTCOME_CONTRACTS_PATH}/deployments/${NETWORK}`;
 
   const [deployer] = await ethers.getSigners();
-  console.log("Deploying contracts with the account:", deployer.address);
+  console.log("Deploying contract with the account:", deployer.address);
 
   // ContactList
   const ContactList = await ethers.deployContract("contracts/ContactList.sol:ContactList", [
@@ -16,15 +17,24 @@ async function main() {
   ], {
     gasLimit: 6000000
   });
-  const ContactsContract = {
-    deployer: deployer.address,
-    address: await ContactList.getAddress()
-  }
-  fs.writeFileSync(`${deploymentsDir}/ContactList.json`, JSON.stringify(ContactsContract))
-  console.log("ContactList deployed to:", ContactsContract.address);
+  console.log("Deploying contract in expected address:", await ContactList.getAddress());
+  
+  try {
+    await ContactList.waitForDeployment();
 
-  // copy abi file to outcome/abi
-  fs.copyFileSync(`${abiDir}/ContactList.json`, `${outcomeAbiDir}/ContactList.json`);
+    const ContactsContract = {
+      deployer: deployer.address,
+      address: await ContactList.getAddress()
+    }
+    fs.writeFileSync(`${deploymentsDir}/ContactList.json`, JSON.stringify(ContactsContract))
+    console.log("ContactList deployed to:", ContactsContract.address);
+  
+    // copy abi file to outcome/abi
+    fs.copyFileSync(`${abiDir}/ContactList.json`, `${outcomeAbiDir}/ContactList.json`);
+  } catch(error: any) {
+    const result = await getRevertReason(error.receipt.hash);
+    console.error(result);
+  }
 }
 
 // We recommend this pattern to be able to use async/await everywhere

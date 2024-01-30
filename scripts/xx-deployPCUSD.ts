@@ -8,7 +8,7 @@ async function main() {
   const deploymentsDir = `${process.env.OUTCOME_CONTRACTS_PATH}/deployments/${NETWORK}`;
 
   const [deployer] = await ethers.getSigners();
-  console.log("Deploying contracts with the account:", deployer.address);
+  console.log("Deploying contract with the account:", deployer.address);
 
   // VRC25PCUSD
   const VRC25PCUSDContract = await ethers.deployContract("contracts/VRC25PCUSD.sol:VRC25PCUSD", {

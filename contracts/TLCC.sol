@@ -235,7 +235,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
         // circle mode is fully decentralized if circle_admin == address(0)
         isFullyDecCircle = circle_admin == address(0);
         
-        circleAdmin = isFullyDecCircle ? getTBAOf(msg.sender) : circle_admin;
+        circleAdmin = isFullyDecCircle ? (msg.sender == serviceAdmin() ? msg.sender : getTBAOf(msg.sender)) : circle_admin;
 
         paymentToken = payment_token;
 

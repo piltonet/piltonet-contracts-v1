@@ -3,7 +3,7 @@ import * as fs from 'fs';
 
 async function main() {
   const [deployer] = await ethers.getSigners();
-  console.log("Deploying contracts with the account:", deployer.address);
+  console.log("Deploying contract with the account:", deployer.address);
 
   // ERC6551Account
   const TBA = "0x7A1887Ae460B3137DdEb7D9BbC2e8e7B673bE606";

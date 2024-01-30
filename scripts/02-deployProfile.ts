@@ -1,5 +1,6 @@
 import { ethers } from "hardhat";
 import * as fs from 'fs';
+import getRevertReason from './getRevertReason';
 
 async function main() {
   const NETWORK = process.env.DEFAULT_NETWORK;
@@ -11,7 +12,7 @@ async function main() {
   const deployedERC6551Registry = require(`.${deploymentsDir}/ERC6551Registry.json`);
 
   const [deployer] = await ethers.getSigners();
-  console.log("Deploying contracts with the account:", deployer.address);
+  console.log("Deploying contract with the account:", deployer.address);
 
   // ERC721Profile
   const ERC721Profile = await ethers.deployContract("contracts/tba/ERC721Profile.sol:ERC721Profile", [
@@ -21,15 +22,24 @@ async function main() {
   ], {
     gasLimit: 6000000
   });
-  const ProfileContract = {
-    deployer: deployer.address,
-    address: await ERC721Profile.getAddress()
-  }
-  fs.writeFileSync(`${deploymentsDir}/ERC721Profile.json`, JSON.stringify(ProfileContract))
-  console.log("ERC721Profile deployed to:", ProfileContract.address);
+  console.log("Deploying contract in expected address:", await ERC721Profile.getAddress());
+  
+  try {
+    await ERC721Profile.waitForDeployment();
 
-  // copy abi file to outcome/abi
-  fs.copyFileSync(`${abiDir}/ERC721Profile.json`, `${outcomeAbiDir}/ERC721Profile.json`);
+    const ProfileContract = {
+      deployer: deployer.address,
+      address: await ERC721Profile.getAddress()
+    }
+    fs.writeFileSync(`${deploymentsDir}/ERC721Profile.json`, JSON.stringify(ProfileContract))
+    console.log("ERC721Profile deployed to:", ProfileContract.address);
+  
+    // copy abi file to outcome/abi
+    fs.copyFileSync(`${abiDir}/ERC721Profile.json`, `${outcomeAbiDir}/ERC721Profile.json`);
+  } catch(error: any) {
+    const result = await getRevertReason(error.receipt.hash);
+    console.error(result);
+  }
 }
 
 // We recommend this pattern to be able to use async/await everywhere
