@@ -6,8 +6,8 @@
       address internal constant PILTONET_SERVICE_ADMIN = 0x2B27F8c647872BC0f5E4C7cA8e3aEAEe19A28f3A;
       
       // ERC721Profile Implementation
-      address internal constant PILTONET_PROFILE_ADDRESS = 0x10e6b7Ba6B2Ddab186219e511557aA13fb803982;
+      address internal constant PILTONET_PROFILE_ADDRESS = 0x0997d0216Bc359B4Ce72Ba3ed573cf468Ad9Cab7;
       
       // ContactList Implementation
-      address internal constant PILTONET_CONTACTLIST_ADDRESS = 0x35812EFC1a0E0BE8001c68464b95811A4a1b7c73;
+      address internal constant PILTONET_CONTACTLIST_ADDRESS = 0x5Fd4896153D4BE664F5fE5391Fe6a464d454bA0D;
   }
