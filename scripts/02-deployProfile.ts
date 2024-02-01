@@ -46,8 +46,12 @@ async function main() {
     
 
   } catch(error: any) {
-    const result = await getRevertReason(error.receipt.hash);
-    console.error(result);
+    if(error.receipt) {
+      const result = await getRevertReason(error.receipt.hash);
+      console.error(result);
+    } else {
+      console.log(error);
+    }
   }
 }
 
