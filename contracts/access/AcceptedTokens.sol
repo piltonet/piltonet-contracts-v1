@@ -2,9 +2,7 @@
 pragma solidity ^0.8.20;
 
 abstract contract AcceptedTokens {
-    
-    // address[] internal PAYMENT_TOKENS = [address(0), 0x093cD3E7806f6EadC76F9578fBF8BaCdf3aC7C3e]; // [VIC, CUSD] in tometestnet
-    address[] internal PAYMENT_TOKENS = [address(0), 0xBC5295E90A7d83A450e23c5ab60ffe3ebA7F9467]; // [VIC, CUSD] in victestnet
+    address[] internal PAYMENT_TOKENS = [address(0), 0xFB52f08F093BF0c8841826050CbfF11a9dAFC7d5]; // [VIC, CUSD]
     string[] internal TOKEN_SYMBOLS = ["VIC", "CUSD"];
     uint8[] internal TOKEN_DECIMALS = [18, 6];
     
