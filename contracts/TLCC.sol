@@ -88,7 +88,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
 
     // List of addresses who are whitelisted to join the circle
     mapping(address => Whitelist) private whitelist;
-    address[] private whitelistAddresses; // for iterating through whitelist's addresses
+    uint8 private whitelistCount; // To maintain the number of whitelisted addresses
     
     // If address is the moderator of the circle
     mapping(address => bool) private isModerator;
@@ -176,6 +176,14 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
         );
         _;
     }
+    
+    modifier onlyLimitedStatus(CircleStatus limitedStatus) {
+        require(
+            circleStatus == limitedStatus,
+            "Error: The current status of the circle makes it unattainable."
+        );
+        _;
+    }
 
     modifier onlyIfCircleNotEnded() {
         require(!endOfTLCC);
@@ -249,7 +257,7 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
             listedBy: circleAdmin,
             joined: false
         });
-        whitelistAddresses.push(circleAdmin);
+        whitelistCount = 1;
 
         emit LogTLCCDeployed(address(this));
     }
@@ -272,16 +280,8 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
     )
         public
         onlyAuthorizedAccounts
+        onlyLimitedStatus(CircleStatus.DEPLOYED)
     {
-        // circle can only be uupdated when the circle status is deployed
-        require(
-            circleStatus == CircleStatus.DEPLOYED,
-            "Error: It is not possible to update the circle."
-        );
-        require(
-            (msg.sender == serviceAdmin() && !isFullyDecCircle) || msg.sender == getTBAOwner(circleAdmin),
-            "Error: The sender is not permitted to do so."
-        );
         require(
             circle_size >= CIRCLES_MIN_MEMBERS &&
             circle_size <= CIRCLES_MAX_MEMBERS,
@@ -326,22 +326,14 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
     /**
     * @dev A potential list of trusted contacts who are considered for membership in the circle.
     * Only circle admin and moderators can add to the whitelist.
+    * Only in deployed status can add to the whitelist.
     * Only trusted contacts of sender can be added to the whitelist.
-    * It can only be added to the whitelist before it is launched.
     */
     function addToWhitelist(address moderator, address[] memory accounts) public 
         onlyCircleModerators
-
-        /** 
-         * @dev check all accounts are moderator contact
-        */
+        onlyLimitedStatus(CircleStatus.DEPLOYED)
         onlyContacts(moderator, accounts)
     {
-        require(
-            circleStatus == CircleStatus.DEPLOYED || circleStatus == CircleStatus.LAUNCHED,
-            "Error: Unable to add to the whitelist of this circle."
-        );
-
         for (uint8 i = 0; i < accounts.length; i++) {
             if (!whitelist[accounts[i]].alive) {
                 whitelist[accounts[i]] = Whitelist({
@@ -349,18 +341,34 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
                     listedBy: moderator,
                     joined: false
                 });
-                whitelistAddresses.push(accounts[i]);
+                whitelistCount++;
+            }
+        }
+    }
+    
+    /**
+    * @dev Remove some accounts from the whitelist.
+    * All modifiers are the same as adding to the whitelist.
+    */
+    function removeFromWhitelist(address moderator, address[] memory accounts) public 
+        onlyCircleModerators
+        onlyLimitedStatus(CircleStatus.DEPLOYED)
+        onlyContacts(moderator, accounts)
+    {
+        for (uint8 i = 0; i < accounts.length; i++) {
+            if (whitelist[accounts[i]].alive) {
+                whitelist[accounts[i]].alive = false;
+                whitelistCount--;
             }
         }
     }
 
-    function launchCircle(uint256 start_date) public onlyAuthorizedAccounts {
+    function launchCircle(uint256 start_date) public
+        onlyAuthorizedAccounts
+        onlyLimitedStatus(CircleStatus.DEPLOYED)
+    {
         require(
-            circleStatus == CircleStatus.DEPLOYED,
-            "Error: The circle status is not ready for the launch."
-        );
-        require(
-            whitelistAddresses.length >= CIRCLES_MIN_MEMBERS,
+            whitelistCount >= circleSize,
             "Error: The number of whitelisted accounts is insufficient for the launch."
         );
         require(
@@ -379,11 +387,8 @@ contract TLCC is ITLCC, CTLCC, ServiceAdmin, RegisteredTBA, TrustedContact, Acce
         // onlyWhitelist
         // onlyIfCircleNotEnded
         // onlyIfEscapeHatchInactive
+        onlyLimitedStatus(CircleStatus.LAUNCHED)
     {
-        require(
-            circleStatus == CircleStatus.LAUNCHED,
-            "Error: The circle status is not ready for join."
-        );
         require(whitelist[msg.sender].alive, "Error: Only whitelist.");
         require(!members[msg.sender].alive, "Error: Already a member.");
         require(membersAddresses.length < circleSize, "Error: Membership capacity is full.");
